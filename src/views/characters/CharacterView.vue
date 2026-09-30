@@ -181,10 +181,30 @@
                             Track the character's funds and currencies.
                         </p>
 
-                        <div class="mt-6 rounded-lg border border-dashed border-slate-300 p-6 text-center">
+                        <div v-if="characterCurrencies.length === 0"
+                            class="mt-6 rounded-lg border border-dashed border-slate-300 p-6 text-center">
                             <p class="text-sm text-slate-500">
                                 No funds recorded yet.
                             </p>
+                        </div>
+
+                        <div v-else class="mt-6 space-y-3">
+                            <div v-for="characterCurrency in characterCurrencies" :key="characterCurrency.id"
+                                class="flex items-center justify-between rounded-lg border border-slate-200 p-4">
+                                <div>
+                                    <p class="font-medium text-slate-800">
+                                        {{ getCurrencyName(characterCurrency.currency_id) }}
+                                    </p>
+
+                                    <p class="mt-1 text-xs text-slate-500">
+                                        Current balance
+                                    </p>
+                                </div>
+
+                                <p class="text-lg font-semibold text-slate-800">
+                                    {{ formatAmount(characterCurrency.amount) }}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -205,6 +225,8 @@ import { useRoute, useRouter } from 'vue-router'
 import characterApi from '@/api/characters'
 import activityApi from '@/api/activities'
 import activityCompletionApi from '@/api/activityCompletions'
+import characterCurrencyApi from '@/api/characterCurrencies'
+import currencyApi from '@/api/currencies'
 import useLoading from '@/composables/useLoading'
 
 const route = useRoute()
@@ -216,6 +238,8 @@ const character = ref(null)
 const activities = ref([])
 const completions = ref([])
 const activityCounts = ref({})
+const characterCurrencies = ref([])
+const currencies = ref([])
 
 const activityGroups = computed(() => {
     return [
@@ -280,6 +304,32 @@ const fetchActivityCounts = async () => {
     )
 }
 
+const fetchCharacterCurrencies = async () => {
+    const response = await characterCurrencyApi.getCharacterCurrenciesByCharacter(
+        route.params.characterId
+    )
+
+    characterCurrencies.value = response.data
+}
+
+const fetchCurrencies = async () => {
+    const response = await currencyApi.getCurrencies()
+
+    currencies.value = response.data
+}
+
+const getCurrencyName = (currencyId) => {
+    const currency = currencies.value.find(
+        (item) => String(item.id) === String(currencyId)
+    )
+
+    return currency?.name || 'Unknown Currency'
+}
+
+const formatAmount = (amount) => {
+    return Number(amount).toLocaleString()
+}
+
 const getActivityCount = (activityId) => {
     return activityCounts.value[activityId] || 0
 }
@@ -342,7 +392,9 @@ const fetchData = async () => {
         await Promise.all([
             fetchCharacter(),
             fetchActivities(),
-            fetchCompletions()
+            fetchCompletions(),
+            fetchCharacterCurrencies(),
+            fetchCurrencies()
         ])
 
         await fetchActivityCounts()
