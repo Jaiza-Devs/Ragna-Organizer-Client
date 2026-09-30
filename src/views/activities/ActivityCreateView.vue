@@ -1,3 +1,4 @@
+```vue
 <template>
     <div class="p-6">
         <div class="mx-auto max-w-xl">
@@ -83,6 +84,16 @@
 
                     <div>
                         <label class="block text-sm font-medium text-slate-700">
+                            Target Count
+                        </label>
+
+                        <input v-model.number="form.target_count" type="number" min="1" placeholder="1"
+                            class="mt-1 w-full rounded-lg border border-slate-300 px-4 py-2.5 outline-none focus:border-slate-500"
+                            required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">
                             Description
                         </label>
 
@@ -134,6 +145,7 @@ const form = reactive({
     type: '',
     description: '',
     reset_type: '',
+    target_count: 1,
     status: 'active'
 })
 
@@ -153,3 +165,4 @@ const submit = async () => {
     }
 }
 </script>
+```
