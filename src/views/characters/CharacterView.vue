@@ -103,14 +103,22 @@
 
                 <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     <div class="rounded-xl bg-white p-6 shadow-sm">
-                        <div>
-                            <h2 class="text-lg font-semibold text-slate-800">
-                                Activities
-                            </h2>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-lg font-semibold text-slate-800">
+                                    Activities
+                                </h2>
 
-                            <p class="mt-1 text-sm text-slate-500">
-                                Track daily, weekly, and instance activities for this character.
-                            </p>
+                                <p class="mt-1 text-sm text-slate-500">
+                                    Track daily, weekly, and instance activities for this character.
+                                </p>
+                            </div>
+
+                            <button type="button"
+                                class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                                @click="router.push(`/accounts/${route.params.accountId}/characters/${route.params.characterId}/activity-history`)">
+                                View History
+                            </button>
                         </div>
 
                         <div v-if="activities.length === 0"
@@ -135,12 +143,12 @@
                                 <div class="space-y-2">
                                     <button v-for="activity in group.activities" :key="activity.id" type="button"
                                         class="flex w-full items-center justify-between rounded-lg border p-4 text-left transition"
-                                        :class="isActivityCompleted(activity.id)
+                                        :class="isActivityCompleted(activity)
                                             ? 'border-green-200 bg-green-50'
                                             : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'"
                                         @click="toggleActivity(activity)">
                                         <div class="min-w-0">
-                                            <p class="font-medium" :class="isActivityCompleted(activity.id)
+                                            <p class="font-medium" :class="isActivityCompleted(activity)
                                                 ? 'text-green-700'
                                                 : 'text-slate-800'">
                                                 {{ activity.name }}
@@ -151,10 +159,12 @@
                                             </p>
                                         </div>
 
-                                        <span class="ml-4 shrink-0 rounded-full px-2.5 py-1 text-xs font-medium" :class="isActivityCompleted(activity.id)
+                                        <span class="ml-4 shrink-0 rounded-full px-2.5 py-1 text-xs font-medium" :class="isActivityCompleted(activity)
                                             ? 'bg-green-100 text-green-700'
-                                            : 'bg-slate-100 text-slate-500'">
-                                            {{ isActivityCompleted(activity.id) ? 'Completed' : 'Pending' }}
+                                            : getActivityCount(activity.id) > 0
+                                                ? 'bg-amber-100 text-amber-700'
+                                                : 'bg-slate-100 text-slate-500'">
+                                            {{ getActivityCount(activity.id) }} / {{ activity.target_count }}
                                         </span>
                                     </button>
                                 </div>
@@ -205,6 +215,7 @@ const { startLoading, stopLoading } = useLoading()
 const character = ref(null)
 const activities = ref([])
 const completions = ref([])
+const activityCounts = ref({})
 
 const activityGroups = computed(() => {
     return [
@@ -254,10 +265,27 @@ const fetchCompletions = async () => {
     )
 }
 
-const isActivityCompleted = (activityId) => {
-    return completions.value.some(
-        (completion) => String(completion.activity_id) === String(activityId)
+const fetchActivityCount = async (activityId) => {
+    const response = await activityCompletionApi.getCurrentCount(
+        activityId,
+        route.params.characterId
     )
+
+    activityCounts.value[activityId] = response.data.current_count
+}
+
+const fetchActivityCounts = async () => {
+    await Promise.all(
+        activities.value.map((activity) => fetchActivityCount(activity.id))
+    )
+}
+
+const getActivityCount = (activityId) => {
+    return activityCounts.value[activityId] || 0
+}
+
+const isActivityCompleted = (activity) => {
+    return getActivityCount(activity.id) >= activity.target_count
 }
 
 const getActivityCompletion = (activityId) => {
@@ -272,24 +300,34 @@ const toggleActivity = async (activity) => {
 
         const completion = getActivityCompletion(activity.id)
 
-        if (completion) {
-            await activityCompletionApi.deleteActivityCompletion(completion.id)
+        if (isActivityCompleted(activity)) {
+            if (!completion) {
+                await fetchCompletions()
+            }
 
-            completions.value = completions.value.filter(
-                (item) => item.id !== completion.id
-            )
+            const currentCompletion = getActivityCompletion(activity.id)
 
-            return
+            if (currentCompletion) {
+                await activityCompletionApi.deleteActivityCompletion(
+                    currentCompletion.id
+                )
+
+                completions.value = completions.value.filter(
+                    (item) => item.id !== currentCompletion.id
+                )
+            }
+        } else {
+            const response = await activityCompletionApi.createActivityCompletion({
+                activity_id: activity.id,
+                character_id: character.value.id,
+                completed_at: new Date().toISOString(),
+                notes: ''
+            })
+
+            completions.value.push(response.data)
         }
 
-        const response = await activityCompletionApi.createActivityCompletion({
-            activity_id: activity.id,
-            character_id: character.value.id,
-            completed_at: new Date().toISOString(),
-            notes: ''
-        })
-
-        completions.value.push(response.data)
+        await fetchActivityCount(activity.id)
     } catch (error) {
         console.error('Failed to update activity completion:', error)
     } finally {
@@ -306,6 +344,8 @@ const fetchData = async () => {
             fetchActivities(),
             fetchCompletions()
         ])
+
+        await fetchActivityCounts()
     } catch (error) {
         console.error('Failed to fetch character data:', error)
     } finally {

@@ -14,6 +14,9 @@ import CharacterView from '@/views/characters/CharacterView.vue'
 import ActivityListView from '@/views/activities/ActivityListView.vue'
 import ActivityCreateView from '@/views/activities/ActivityCreateView.vue'
 
+// Activity Completions
+import ActivityHistoryView from '@/views/activities/ActivityHistoryView.vue'
+
 const routes = [
   {
     path: '/',
@@ -63,6 +66,13 @@ const routes = [
         name: 'activity-create',
         component: ActivityCreateView
       },
+
+      //Activity Completions
+      {
+        path: '/accounts/:accountId/characters/:characterId/activity-history',
+        name: 'activity-history',
+        component: ActivityHistoryView
+      }
 
     ]
   }

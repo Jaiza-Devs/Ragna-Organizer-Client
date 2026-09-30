@@ -8,6 +8,15 @@ const getActivityCompletion = (id) => {
   return api.get(`/api/activity-completions/${id}`)
 }
 
+const getCurrentCount = (activityId, characterId) => {
+  return api.get('/api/activity-completions/current-count', {
+    params: {
+      activityId,
+      characterId
+    }
+  })
+}
+
 const createActivityCompletion = (data) => {
   return api.post('/api/activity-completions', data)
 }
@@ -23,6 +32,7 @@ const deleteActivityCompletion = (id) => {
 export default {
   getActivityCompletions,
   getActivityCompletion,
+  getCurrentCount,
   createActivityCompletion,
   updateActivityCompletion,
   deleteActivityCompletion
