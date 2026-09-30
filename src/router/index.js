@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 import AppLayout from '@/layouts/AppLayout.vue'
 import Home from '@/views/HomeView.vue'
@@ -6,7 +6,7 @@ import AccountListView from '@/views/accounts/AccountListView.vue'
 import AccountCreateView from '@/views/accounts/AccountCreateView.vue'
 import AccountView from '@/views/accounts/AccountView.vue'
 
-// Characters 
+// Characters
 import CharacterCreateView from '@/views/characters/CharacterCreateView.vue'
 import CharacterView from '@/views/characters/CharacterView.vue'
 
@@ -55,7 +55,7 @@ const routes = [
         component: CharacterView
       },
 
-      //Activities
+      // Activities
       {
         path: 'activities',
         name: 'activities',
@@ -67,19 +67,18 @@ const routes = [
         component: ActivityCreateView
       },
 
-      //Activity Completions
+      // Activity Completions
       {
-        path: '/accounts/:accountId/characters/:characterId/activity-history',
+        path: 'accounts/:accountId/characters/:characterId/activity-history',
         name: 'activity-history',
         component: ActivityHistoryView
       }
-
     ]
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHashHistory(process.env.BASE_URL),
   routes
 })
 
