@@ -295,6 +295,12 @@ const fetchActivityCount = async (activityId) => {
         route.params.characterId
     )
 
+    console.log('ACTIVITY COUNT:', {
+        activityId,
+        characterId: route.params.characterId,
+        response: response.data
+    })
+
     activityCounts.value[activityId] = response.data.current_count
 }
 
