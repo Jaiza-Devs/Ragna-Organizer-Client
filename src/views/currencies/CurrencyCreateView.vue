@@ -1,66 +1,50 @@
 <template>
-    <div class="p-6">
-        <div class="mx-auto max-w-6xl">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800">
-                    Create Currency
-                </h1>
+    <div class="nw-page">
+        <div class="mx-auto max-w-xl">
+            <div class="nw-card">
+                <!-- Header -->
+                <header class="nw-card-header flex items-center gap-3 px-5 py-4">
+                    <div class="nw-avatar" aria-hidden="true">🪙</div>
 
-                <p class="mt-1 text-sm text-slate-500">
-                    Add a currency that can be tracked by your characters.
-                </p>
-            </div>
+                    <div class="min-w-0 flex-1">
+                        <h1 class="nw-card-title text-xl font-extrabold">
+                            Create Currency
+                        </h1>
 
-            <div class="mt-6 rounded-xl bg-white p-5 shadow-sm sm:p-6">
-                <form @submit.prevent="handleSubmit">
-                    <div class="space-y-5">
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">
-                                Currency Name
-                            </label>
+                        <p class="nw-card-sub text-xs">
+                            Add a currency that can be tracked by your characters.
+                        </p>
+                    </div>
+                </header>
 
-                            <input v-model="form.name" type="text" required
-                                class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-                                placeholder="e.g. Zeny" />
-                        </div>
-
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">
-                                Description
-                            </label>
-
-                            <textarea v-model="form.description" rows="4"
-                                class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-                                placeholder="Describe this currency..."></textarea>
-                        </div>
-
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-slate-700">
-                                Status
-                            </label>
-
-                            <select v-model="form.status"
-                                class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500">
-                                <option value="active">
-                                    Active
-                                </option>
-
-                                <option value="inactive">
-                                    Inactive
-                                </option>
-                            </select>
-                        </div>
+                <!-- Form -->
+                <form class="space-y-4 p-5" @submit.prevent="handleSubmit">
+                    <div>
+                        <label for="name" class="nw-label">Currency Name</label>
+                        <input id="name" v-model="form.name" type="text" required class="nw-input"
+                            placeholder="e.g. Zeny" />
                     </div>
 
-                    <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                        <button type="button"
-                            class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 sm:w-auto"
-                            @click="handleCancel">
+                    <div>
+                        <label for="description" class="nw-label">Description</label>
+                        <textarea id="description" v-model="form.description" rows="4" class="nw-input"
+                            placeholder="Describe this currency..."></textarea>
+                    </div>
+
+                    <div>
+                        <label for="status" class="nw-label">Status</label>
+                        <select id="status" v-model="form.status" class="nw-input nw-select">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+                        <button type="button" class="nw-btn nw-btn-ghost w-full py-2.5 sm:w-auto" @click="handleCancel">
                             Cancel
                         </button>
 
-                        <button type="submit"
-                            class="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 sm:w-auto">
+                        <button type="submit" class="nw-btn nw-btn-gold w-full py-2.5 sm:w-auto">
                             Create Currency
                         </button>
                     </div>

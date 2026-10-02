@@ -1,219 +1,254 @@
 <template>
-    <div class="p-6">
+    <div class="nw-page">
         <div class="mx-auto max-w-6xl">
-            <div class="flex items-center justify-between">
+            <!-- Page header -->
+            <div class="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-800">
+                    <h1 class="nw-heading text-2xl font-extrabold">
                         {{ character?.character_name || 'Character' }}
                     </h1>
 
-                    <p class="mt-1 text-sm text-slate-500">
+                    <p class="nw-muted mt-1 text-sm">
                         Character details, activities, and funds.
                     </p>
                 </div>
 
-                <button type="button" class="text-sm text-slate-500 hover:text-slate-800"
+                <button type="button" class="nw-btn nw-btn-ghost"
                     @click="router.push(`/accounts/${route.params.accountId}`)">
-                    Back to Account
+                    ← Back to Account
                 </button>
             </div>
 
             <div v-if="character" class="mt-6 space-y-6">
-                <div class="rounded-xl bg-white p-6 shadow-sm">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-slate-800">
-                                Character Information
+                <!-- Character information -->
+                <section class="nw-card">
+                    <header class="nw-card-header flex items-center gap-3 px-5 py-4">
+                        <div class="nw-avatar" aria-hidden="true">
+                            {{ initial(character.character_name) }}
+                        </div>
+
+                        <div class="min-w-0 flex-1">
+                            <h2 class="nw-card-title truncate text-lg font-bold">
+                                {{ character.character_name }}
                             </h2>
 
-                            <p class="mt-1 text-sm text-slate-500">
-                                Basic information about this character.
+                            <p class="nw-card-sub truncate text-xs">
+                                {{ character.class }} · {{ character.server }}
                             </p>
                         </div>
 
-                        <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="character.status === 'active'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-slate-100 text-slate-500'">
+                        <span class="nw-status" :class="character.status === 'active' ? 'nw-status-active' : ''">
                             {{ character.status }}
                         </span>
-                    </div>
+                    </header>
 
-                    <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                Character Name
-                            </p>
-
-                            <p class="mt-1 font-medium text-slate-800">
-                                {{ character.character_name }}
-                            </p>
+                    <div class="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
+                        <div class="nw-tile">
+                            <p class="nw-muted text-xs font-semibold">Class</p>
+                            <p class="nw-value mt-0.5 font-bold">{{ character.class }}</p>
                         </div>
 
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                Class
-                            </p>
-
-                            <p class="mt-1 font-medium text-slate-800">
-                                {{ character.class }}
-                            </p>
+                        <div class="nw-tile">
+                            <p class="nw-muted text-xs font-semibold">Server</p>
+                            <p class="nw-value mt-0.5 font-bold">{{ character.server }}</p>
                         </div>
 
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                Server
-                            </p>
-
-                            <p class="mt-1 font-medium text-slate-800">
-                                {{ character.server }}
-                            </p>
+                        <div class="nw-tile">
+                            <p class="nw-muted text-xs font-semibold">Level</p>
+                            <p class="nw-value mt-0.5 text-xl font-extrabold">{{ character.level }}</p>
                         </div>
 
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                Level
-                            </p>
-
-                            <p class="mt-1 font-medium text-slate-800">
-                                {{ character.level }}
-                            </p>
+                        <div class="nw-tile">
+                            <p class="nw-muted text-xs font-semibold">Job Level</p>
+                            <p class="nw-value mt-0.5 text-xl font-extrabold">{{ character.job_level }}</p>
                         </div>
 
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                Job Level
-                            </p>
-
-                            <p class="mt-1 font-medium text-slate-800">
-                                {{ character.job_level }}
-                            </p>
-                        </div>
-
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">
-                                Notes
-                            </p>
-
-                            <p class="mt-1 text-slate-700">
-                                {{ character.notes || 'No notes.' }}
-                            </p>
+                        <div class="nw-tile col-span-2 md:col-span-4">
+                            <p class="nw-muted text-xs font-semibold">Notes</p>
+                            <p class="nw-value mt-0.5 text-sm">{{ character.notes || 'No notes.' }}</p>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <div class="rounded-xl bg-white p-6 shadow-sm">
-                        <div class="flex items-center justify-between">
+                    <!-- Activities -->
+                    <section class="nw-card">
+                        <header class="nw-card-header flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                             <div>
-                                <h2 class="text-lg font-semibold text-slate-800">
+                                <h2 class="nw-card-title text-lg font-bold">
                                     Activities
                                 </h2>
 
-                                <p class="mt-1 text-sm text-slate-500">
-                                    Track daily, weekly, and instance activities for this character.
+                                <p class="nw-card-sub text-xs">
+                                    Track daily, weekly, and instance activities.
                                 </p>
                             </div>
 
-                            <button type="button"
-                                class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                            <button type="button" class="nw-btn nw-btn-light"
                                 @click="router.push(`/accounts/${route.params.accountId}/characters/${route.params.characterId}/activity-history`)">
                                 View History
                             </button>
-                        </div>
+                        </header>
 
-                        <div v-if="activities.length === 0"
-                            class="mt-6 rounded-lg border border-dashed border-slate-300 p-6 text-center">
-                            <p class="text-sm text-slate-500">
+                        <div class="p-5">
+                            <div v-if="activities.length === 0" class="nw-empty">
                                 No activities available.
-                            </p>
-                        </div>
+                            </div>
 
-                        <div v-else class="mt-6 space-y-6">
-                            <div v-for="group in activityGroups" :key="group.type">
-                                <div class="mb-3 flex items-center justify-between">
-                                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-700">
-                                        {{ group.label }}
+                            <div v-else class="space-y-5">
+                                <div v-for="group in activityGroups" :key="group.type">
+                                    <div class="mb-2 flex items-center gap-2">
+                                        <h3 class="nw-heading text-sm font-extrabold">
+                                            {{ group.label }}
+                                        </h3>
+
+                                        <span class="nw-count">
+                                            {{ group.activities.length }}
+                                        </span>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <button v-for="activity in group.activities" :key="activity.id" type="button"
+                                            class="nw-activity"
+                                            :class="{ 'nw-activity-done': isActivityCompleted(activity) }"
+                                            :aria-pressed="isActivityCompleted(activity)"
+                                            @click="toggleActivity(activity)">
+                                            <span class="nw-check" aria-hidden="true">
+                                                {{ isActivityCompleted(activity) ? '✓' : '' }}
+                                            </span>
+
+                                            <span class="min-w-0 flex-1">
+                                                <span class="nw-activity-name block truncate text-sm font-bold">
+                                                    {{ activity.name }}
+                                                </span>
+
+                                                <span class="nw-muted block truncate text-xs">
+                                                    {{ activity.description || 'No description.' }}
+                                                </span>
+                                            </span>
+
+                                            <span class="nw-progress" :class="isActivityCompleted(activity)
+                                                ? 'nw-progress-done'
+                                                : getActivityCount(activity.id) > 0
+                                                    ? 'nw-progress-partial'
+                                                    : ''">
+                                                {{ getActivityCount(activity.id) }} / {{ activity.target_count }}
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Funds & currencies -->
+                    <section class="nw-card self-start">
+                        <header class="nw-card-header flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+                            <div>
+                                <h2 class="nw-card-title text-lg font-bold">
+                                    Funds & Currencies
+                                </h2>
+
+                                <p class="nw-card-sub text-xs">
+                                    Track the character's funds and currencies.
+                                </p>
+                            </div>
+
+                            <button type="button" class="nw-btn nw-btn-light" @click="openCurrencyForm()">
+                                + Add Currency
+                            </button>
+                        </header>
+
+                        <div class="p-5">
+                            <!-- Currency form -->
+                            <div v-if="showCurrencyForm"
+                                class="mb-5 rounded-[14px] border border-nw-line-strong bg-white p-4 shadow-nw-chip">
+                                <div class="mb-4">
+                                    <h3 class="nw-heading text-sm font-extrabold">
+                                        {{ editingCharacterCurrency ? 'Edit Currency' : 'Add Currency' }}
                                     </h3>
 
-                                    <span class="text-xs text-slate-400">
-                                        {{ group.activities.length }}
-                                    </span>
+                                    <p class="nw-muted mt-0.5 text-xs">
+                                        {{ editingCharacterCurrency
+                                            ? 'Update this character currency balance.'
+                                            : 'Add a currency and starting balance for this character.' }}
+                                    </p>
                                 </div>
 
-                                <div class="space-y-2">
-                                    <button v-for="activity in group.activities" :key="activity.id" type="button"
-                                        class="flex w-full items-center justify-between rounded-lg border p-4 text-left transition"
-                                        :class="isActivityCompleted(activity)
-                                            ? 'border-green-200 bg-green-50'
-                                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'"
-                                        @click="toggleActivity(activity)">
-                                        <div class="min-w-0">
-                                            <p class="font-medium" :class="isActivityCompleted(activity)
-                                                ? 'text-green-700'
-                                                : 'text-slate-800'">
-                                                {{ activity.name }}
-                                            </p>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="currency_id" class="nw-label">Currency</label>
 
-                                            <p class="mt-1 text-xs text-slate-500">
-                                                {{ activity.description || 'No description.' }}
-                                            </p>
-                                        </div>
+                                        <select id="currency_id" v-model="currencyForm.currency_id"
+                                            :disabled="!!editingCharacterCurrency"
+                                            class="nw-input nw-select disabled:bg-nw-sky-light disabled:text-nw-muted">
+                                            <option value="" disabled>
+                                                Select currency
+                                            </option>
 
-                                        <span class="ml-4 shrink-0 rounded-full px-2.5 py-1 text-xs font-medium" :class="isActivityCompleted(activity)
-                                            ? 'bg-green-100 text-green-700'
-                                            : getActivityCount(activity.id) > 0
-                                                ? 'bg-amber-100 text-amber-700'
-                                                : 'bg-slate-100 text-slate-500'">
-                                            {{ getActivityCount(activity.id) }} / {{ activity.target_count }}
-                                        </span>
+                                            <option v-for="currency in availableCurrencies" :key="currency.id"
+                                                :value="currency.id">
+                                                {{ currency.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label for="currency_amount" class="nw-label">Amount</label>
+
+                                        <input id="currency_amount" v-model="currencyForm.amount" type="number" min="0"
+                                            step="1" class="nw-input" placeholder="Enter amount" />
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 flex justify-end gap-2">
+                                    <button type="button" class="nw-btn nw-btn-ghost" @click="closeCurrencyForm">
+                                        Cancel
+                                    </button>
+
+                                    <button type="button" class="nw-btn nw-btn-gold" @click="saveCurrency">
+                                        {{ editingCharacterCurrency ? 'Save Changes' : 'Add Currency' }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div v-if="characterCurrencies.length === 0" class="nw-empty">
+                                No funds recorded yet.
+                            </div>
+
+                            <div v-else class="space-y-2">
+                                <div v-for="characterCurrency in characterCurrencies" :key="characterCurrency.id"
+                                    class="nw-fund">
+                                    <div class="nw-coin" aria-hidden="true">🪙</div>
+
+                                    <div class="min-w-0 flex-1">
+                                        <p class="nw-value truncate text-sm font-bold">
+                                            {{ getCurrencyName(characterCurrency.currency_id) }}
+                                        </p>
+
+                                        <p class="nw-muted truncate text-xs">
+                                            {{ getFundTimestamp(characterCurrency) }}
+                                        </p>
+                                    </div>
+
+                                    <p class="nw-heading text-lg font-extrabold tabular-nums">
+                                        {{ formatAmount(characterCurrency.amount) }}
+                                    </p>
+
+                                    <button type="button" class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
+                                        @click="openCurrencyForm(characterCurrency)">
+                                        Edit
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="rounded-xl bg-white p-6 shadow-sm">
-                        <h2 class="text-lg font-semibold text-slate-800">
-                            Funds & Currencies
-                        </h2>
-
-                        <p class="mt-1 text-sm text-slate-500">
-                            Track the character's funds and currencies.
-                        </p>
-
-                        <div v-if="characterCurrencies.length === 0"
-                            class="mt-6 rounded-lg border border-dashed border-slate-300 p-6 text-center">
-                            <p class="text-sm text-slate-500">
-                                No funds recorded yet.
-                            </p>
-                        </div>
-
-                        <div v-else class="mt-6 space-y-3">
-                            <div v-for="characterCurrency in characterCurrencies" :key="characterCurrency.id"
-                                class="flex items-center justify-between rounded-lg border border-slate-200 p-4">
-                                <div>
-                                    <p class="font-medium text-slate-800">
-                                        {{ getCurrencyName(characterCurrency.currency_id) }}
-                                    </p>
-
-                                    <p class="mt-1 text-xs text-slate-500">
-                                        Current balance
-                                    </p>
-                                </div>
-
-                                <p class="text-lg font-semibold text-slate-800">
-                                    {{ formatAmount(characterCurrency.amount) }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    </section>
                 </div>
             </div>
 
-            <div v-else class="mt-6 rounded-xl bg-white p-6 shadow-sm">
-                <p class="text-sm text-slate-500">
-                    Character not found.
-                </p>
+            <!-- Not found -->
+            <div v-else class="nw-card mt-6 px-5 py-4 text-sm nw-muted">
+                Character not found.
             </div>
         </div>
     </div>
@@ -241,6 +276,16 @@ const activityCounts = ref({})
 const characterCurrencies = ref([])
 const currencies = ref([])
 
+const showCurrencyForm = ref(false)
+const editingCharacterCurrency = ref(null)
+
+const currencyForm = ref({
+    currency_id: '',
+    amount: 0
+})
+
+const initial = (name) => (name ? name.trim().charAt(0).toUpperCase() : '?')
+
 const activityGroups = computed(() => {
     return [
         {
@@ -265,6 +310,18 @@ const activityGroups = computed(() => {
             )
         }
     ].filter((group) => group.activities.length > 0)
+})
+
+const availableCurrencies = computed(() => {
+    return currencies.value.filter((currency) => {
+        if (editingCharacterCurrency.value) {
+            return true
+        }
+
+        return !characterCurrencies.value.some(
+            (item) => String(item.currency_id) === String(currency.id)
+        )
+    })
 })
 
 const fetchCharacter = async () => {
@@ -336,6 +393,29 @@ const formatAmount = (amount) => {
     return Number(amount).toLocaleString()
 }
 
+// created_at / updated_at come back as UTC ISO strings, shown in the viewer's local time
+const formatDateTime = (value) => {
+    if (!value) {
+        return '—'
+    }
+
+    return new Date(value).toLocaleString([], {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+    })
+}
+
+// "Updated …" only when the record was changed after creation, otherwise "Added …"
+const getFundTimestamp = (item) => {
+    const wasUpdated =
+        item.updated_at &&
+        new Date(item.updated_at) - new Date(item.created_at) > 1000
+
+    return wasUpdated
+        ? `Updated ${formatDateTime(item.updated_at)}`
+        : `Added ${formatDateTime(item.created_at)}`
+}
+
 const getActivityCount = (activityId) => {
     return activityCounts.value[activityId] || 0
 }
@@ -348,6 +428,75 @@ const getActivityCompletion = (activityId) => {
     return completions.value.find(
         (completion) => String(completion.activity_id) === String(activityId)
     )
+}
+
+const openCurrencyForm = (characterCurrency = null) => {
+    editingCharacterCurrency.value = characterCurrency
+
+    if (characterCurrency) {
+        currencyForm.value = {
+            currency_id: characterCurrency.currency_id,
+            amount: characterCurrency.amount
+        }
+    } else {
+        currencyForm.value = {
+            currency_id: '',
+            amount: 0
+        }
+    }
+
+    showCurrencyForm.value = true
+}
+
+const closeCurrencyForm = () => {
+    showCurrencyForm.value = false
+    editingCharacterCurrency.value = null
+
+    currencyForm.value = {
+        currency_id: '',
+        amount: 0
+    }
+}
+
+const saveCurrency = async () => {
+    try {
+        if (!currencyForm.value.currency_id) {
+            return
+        }
+
+        startLoading()
+
+        if (editingCharacterCurrency.value) {
+            const response = await characterCurrencyApi.updateCharacterCurrency(
+                editingCharacterCurrency.value.id,
+                {
+                    amount: Number(currencyForm.value.amount)
+                }
+            )
+
+            const index = characterCurrencies.value.findIndex(
+                (item) => item.id === editingCharacterCurrency.value.id
+            )
+
+            if (index !== -1) {
+                characterCurrencies.value[index] = response.data
+            }
+        } else {
+            const response = await characterCurrencyApi.createCharacterCurrency({
+                character_id: character.value.id,
+                currency_id: Number(currencyForm.value.currency_id),
+                amount: Number(currencyForm.value.amount)
+            })
+
+            characterCurrencies.value.push(response.data)
+        }
+
+        closeCurrencyForm()
+    } catch (error) {
+        console.error('Failed to save character currency:', error)
+    } finally {
+        stopLoading()
+    }
 }
 
 const toggleActivity = async (activity) => {

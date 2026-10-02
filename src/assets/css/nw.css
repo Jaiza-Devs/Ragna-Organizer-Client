@@ -1,0 +1,119 @@
+/* Ragna Organizer: "New World" theme for Tailwind v4.
+   Import it from your main CSS, right after the tailwindcss import:
+
+       @import "tailwindcss";
+       @import "./nw.css";
+*/
+
+@theme {
+    --font-nw: 'Nunito', 'Poppins', 'Segoe UI', system-ui, sans-serif;
+
+    --color-nw-navy: #1f3256;
+    --color-nw-sky: #5fa8e8;
+    --color-nw-sky-light: #dcecfb;
+    --color-nw-cream: #f7faff;
+    --color-nw-gold: #f2a93b;
+    --color-nw-gold-deep: #e0842a;
+    --color-nw-text: #2b3d63;
+    --color-nw-muted: #7b8ba8;
+    --color-nw-green: #2f9e62;
+    --color-nw-line: #dbe6f5;
+    --color-nw-line-strong: #c5d6ec;
+
+    --shadow-nw-card: 0 4px 14px rgba(31, 50, 86, .12), inset 0 0 0 1px rgba(95, 168, 232, .25);
+    --shadow-nw-card-hover: 0 8px 20px rgba(31, 50, 86, .18), inset 0 0 0 1px rgba(95, 168, 232, .5);
+    --shadow-nw-header: inset 0 -2px 0 rgba(255, 255, 255, .25);
+    --shadow-nw-chip: 0 1px 3px rgba(20, 40, 90, .25);
+    --shadow-nw-gold: 0 3px 8px rgba(224, 132, 42, .4), inset 0 1px 0 rgba(255, 255, 255, .5);
+    --shadow-nw-sky: 0 2px 6px rgba(74, 143, 214, .4), inset 0 1px 0 rgba(255, 255, 255, .45);
+    --shadow-nw-inset: inset 0 1px 2px rgba(31, 50, 86, .08);
+}
+
+/* Gradients (v4 has no theme namespace for these, so they are utilities) */
+@utility bg-nw-grad-page { background-image: linear-gradient(180deg, #e6f1fc 0%, #f4f8fd 100%); }
+@utility bg-nw-grad-header { background-image: linear-gradient(135deg, #8cc4f5 0%, #5fa8e8 60%, #4a8fd6 100%); }
+@utility bg-nw-grad-gold { background-image: linear-gradient(180deg, #ffc15a 0%, #e0842a 100%); }
+@utility bg-nw-grad-gold-tile { background-image: linear-gradient(180deg, #ffd27a, #e0842a); }
+@utility bg-nw-grad-sky { background-image: linear-gradient(180deg, #7fb9ef 0%, #4a8fd6 100%); }
+
+@layer components {
+    /* Page + text */
+    .nw-page { @apply min-h-screen bg-nw-grad-page p-6 font-nw; }
+    .nw-heading { @apply text-nw-navy; }
+    .nw-muted { @apply text-nw-muted; }
+    .nw-value { @apply text-nw-text; }
+    .nw-empty { @apply rounded-[14px] border-2 border-dashed border-nw-line-strong bg-white p-6 text-center text-sm text-nw-muted; }
+
+    /* Cards */
+    .nw-card { @apply overflow-hidden rounded-[20px] border border-white bg-nw-cream shadow-nw-card; }
+    .nw-card-hover { @apply transition hover:-translate-y-0.5 hover:shadow-nw-card-hover; }
+    .nw-card-header { @apply bg-nw-grad-header shadow-nw-header; }
+    .nw-card-title { @apply font-bold text-white; text-shadow: 0 1px 2px rgba(20, 50, 110, .5); }
+    .nw-card-sub { @apply text-white/90; }
+
+    /* Small blocks */
+    .nw-tile { @apply min-w-0 rounded-xl border border-nw-line bg-white px-3.5 py-2.5; }
+    .nw-tile-sm { @apply rounded-[10px] bg-nw-cream px-2.5 py-1.5; }
+    .nw-row { @apply flex items-center justify-between gap-4 rounded-xl border border-nw-line bg-white px-3 py-2; }
+    .nw-count { @apply rounded-full bg-nw-sky-light px-2 text-[0.7rem] font-bold text-nw-muted; }
+
+    /* Avatar tile */
+    .nw-avatar { @apply grid h-10 w-10 shrink-0 place-items-center rounded-xl border-2 border-white bg-nw-grad-gold-tile text-lg font-extrabold text-white shadow-nw-chip; text-shadow: 0 1px 0 rgba(150, 70, 0, .5); }
+    .nw-avatar-sky { @apply bg-nw-grad-sky; text-shadow: 0 1px 0 rgba(20, 50, 110, .45); }
+    .nw-avatar-lg { @apply h-16 w-16 rounded-[18px] text-3xl; }
+
+    /* Status chip (the dot is the ::before) */
+    .nw-status { @apply inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-0.5 text-xs font-bold capitalize text-nw-muted shadow-nw-chip; }
+    .nw-status::before { content: ''; @apply h-2 w-2 rounded-full bg-[#b4bfd1]; }
+    .nw-status-active { @apply text-nw-green; }
+    .nw-status-active::before { @apply bg-nw-green; box-shadow: 0 0 0 3px rgba(47, 158, 98, .2); }
+
+    /* Buttons */
+    .nw-btn { @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-white px-4 py-2 text-sm font-bold transition hover:brightness-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold disabled:cursor-not-allowed disabled:opacity-50; }
+    .nw-btn-gold { @apply bg-nw-grad-gold text-white shadow-nw-gold; text-shadow: 0 1px 1px rgba(140, 60, 0, .45); }
+    .nw-btn-sky { @apply bg-nw-grad-sky text-white shadow-nw-sky; text-shadow: 0 1px 1px rgba(20, 50, 110, .4); }
+    .nw-btn-ghost { @apply border-nw-line-strong bg-white text-nw-navy shadow-sm hover:bg-nw-sky-light; }
+    .nw-btn-light { @apply border-transparent bg-white px-3.5 py-1 text-[0.8125rem] text-nw-navy shadow-nw-chip hover:bg-nw-sky-light; }
+
+    /* Forms */
+    .nw-label { @apply mb-1 block text-[0.8125rem] font-bold text-nw-text; }
+    .nw-input { @apply w-full rounded-xl border border-nw-line-strong bg-white px-3.5 py-2.5 text-[0.9rem] text-nw-text shadow-nw-inset outline-hidden transition placeholder:text-[#a5b3c9] focus:border-nw-sky focus:ring-[3px] focus:ring-nw-sky/30; }
+    .nw-select {
+        @apply appearance-none pr-9;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235fa8e8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right .85rem center;
+    }
+
+    /* Character cards (nested inside a card) */
+    .nw-char { @apply flex flex-col overflow-hidden rounded-2xl border border-nw-line-strong bg-white transition hover:border-nw-sky hover:shadow-lg; }
+    .nw-char-header { @apply flex items-center gap-3 border-b border-nw-line-strong bg-linear-to-b from-[#eaf4ff] to-nw-sky-light px-4 py-3; }
+
+    /* Activity rows */
+    .nw-activity { @apply flex w-full items-center gap-3 rounded-[14px] border border-nw-line bg-white px-3 py-2.5 text-left transition hover:border-[#a9cdf1] hover:bg-nw-sky-light active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold; }
+    .nw-activity-name { @apply text-nw-text; }
+    .nw-activity-done,
+    .nw-activity-done:hover { @apply border-[#a8dcc1] bg-[#eaf8f0]; }
+    .nw-activity-done .nw-activity-name { @apply text-[#217a4b]; }
+    .nw-check { @apply grid h-6 w-6 shrink-0 place-items-center rounded-lg border-2 border-nw-line-strong bg-white text-sm font-extrabold text-white; }
+    .nw-activity-done .nw-check { @apply border-white bg-linear-to-b from-[#4fc58a] to-nw-green shadow-md; }
+    .nw-progress { @apply shrink-0 rounded-full bg-[#e9eef6] px-2.5 py-0.5 text-xs font-bold tabular-nums text-nw-muted; }
+    .nw-progress-partial { @apply bg-[#fff0cf] text-[#a35f00]; }
+    .nw-progress-done { @apply bg-[#d3f1e1] text-[#217a4b]; }
+
+    /* Funds */
+    .nw-fund { @apply flex items-center gap-3 rounded-[14px] border border-nw-line bg-white px-3 py-2.5; }
+    .nw-coin { @apply grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-linear-to-b from-[#fff1cf] to-[#ffdc8c] leading-none; }
+
+    /* Sidebar */
+    .nw-sidebar { @apply sticky top-0 flex h-screen w-64 shrink-0 flex-col bg-linear-to-b from-[#2a4a7f] to-nw-navy p-3 font-nw; }
+    .nw-item { @apply flex items-center gap-3 rounded-[14px] border border-nw-line bg-white py-2 pl-2 pr-3 text-sm font-semibold text-nw-text transition hover:border-[#a9cdf1] hover:bg-nw-sky-light active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold; }
+    .nw-item-active,
+    .nw-item-active:hover { @apply border-white bg-nw-grad-gold text-white shadow-nw-gold; text-shadow: 0 1px 1px rgba(140, 60, 0, .45); }
+    .nw-icon { @apply grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-linear-to-b from-[#eaf4ff] to-[#cfe3f8] leading-none; }
+    .nw-item-active .nw-icon { @apply bg-white/35 bg-none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nw-btn, .nw-item, .nw-activity, .nw-input, .nw-card-hover, .nw-char { transition: none; }
+}
