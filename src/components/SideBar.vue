@@ -19,6 +19,11 @@
                 class="mt-1 block rounded-lg px-4 py-3 text-sm font-medium hover:bg-slate-800">
                 Activities
             </router-link>
+
+            <router-link to="/currencies"
+                class="mt-1 block rounded-lg px-4 py-3 text-sm font-medium hover:bg-slate-800">
+                Currencies
+            </router-link>
         </nav>
     </aside>
 </template>

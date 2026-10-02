@@ -17,6 +17,10 @@ import ActivityCreateView from '@/views/activities/ActivityCreateView.vue'
 // Activity Completions
 import ActivityHistoryView from '@/views/activities/ActivityHistoryView.vue'
 
+// Currencies
+import CurrencyListView from '@/views/currencies/CurrencyListView.vue'
+import CurrencyCreateView from '@/views/currencies/CurrencyCreateView.vue'
+
 const routes = [
   {
     path: '/',
@@ -72,6 +76,19 @@ const routes = [
         path: 'accounts/:accountId/characters/:characterId/activity-history',
         name: 'activity-history',
         component: ActivityHistoryView
+      },
+
+      // Currencies
+      {
+        path: 'currencies',
+        name: 'currencies',
+        component: CurrencyListView
+      },
+
+      {
+        path: 'currencies/create',
+        name: 'currency-create',
+        component: CurrencyCreateView
       }
     ]
   }
