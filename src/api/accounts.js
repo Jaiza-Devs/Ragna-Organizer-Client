@@ -1,7 +1,9 @@
 import api from './axios'
 
-const getAccounts = () => {
-  return api.get('/api/accounts')
+const getAccounts = (params = {}) => {
+  return api.get('/api/accounts', {
+    params
+  })
 }
 
 const getAccount = (id) => {
@@ -16,6 +18,12 @@ const updateAccount = (id, data) => {
   return api.put(`/api/accounts/${id}`, data)
 }
 
+const updateAccountStatus = (id, status) => {
+  return api.patch(`/api/accounts/${id}/status`, {
+    status
+  })
+}
+
 const deleteAccount = (id) => {
   return api.delete(`/api/accounts/${id}`)
 }
@@ -25,5 +33,6 @@ export default {
   getAccount,
   createAccount,
   updateAccount,
+  updateAccountStatus,
   deleteAccount
 }
