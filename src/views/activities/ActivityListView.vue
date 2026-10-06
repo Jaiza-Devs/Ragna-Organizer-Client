@@ -1,6 +1,6 @@
 <template>
     <div class="nw-page p-3 sm:p-6 lg:p-8">
-        <div class="mx-auto max-w-6xl">
+        <div class="mx-auto max-w-7xl">
             <!-- Page header -->
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -10,6 +10,10 @@
 
                     <p class="nw-muted mt-1 text-xs sm:text-sm">
                         Manage reusable daily, weekly, and instance activities.
+                        <span v-if="!loading && activities.length" class="whitespace-nowrap font-semibold">
+                            {{ activeCount }} active<template v-if="inactiveCount"> · {{ inactiveCount }}
+                                inactive</template>
+                        </span>
                     </p>
                 </div>
 
@@ -48,94 +52,118 @@
             </div>
 
             <template v-else>
-                <!-- Toolbar -->
+                <!-- Search + filters -->
                 <section class="nw-card mt-5 px-4 py-3">
-                    <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-                        <div class="lg:flex-1">
-                            <label for="activity-search" class="sr-only">Search activities</label>
-                            <input id="activity-search" v-model="search" type="search" class="nw-input py-2"
-                                placeholder="Search activities" />
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+                        <div class="relative w-full lg:w-60">
+                            <svg class="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-nw-muted"
+                                viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" aria-hidden="true">
+                                <circle cx="9" cy="9" r="6" />
+                                <path d="m14 14 4 4" />
+                            </svg>
+
+                            <input v-model="search" type="text" aria-label="Search activities"
+                                placeholder="Search activities..." class="text-base sm:text-[0.9rem] nw-input pl-10">
                         </div>
 
-                        <div class="flex flex-wrap items-center gap-2">
-                            <div class="inline-flex rounded-full border border-nw-line-strong bg-white p-0.5"
-                                role="group" aria-label="Filter by type">
-                                <button v-for="tab in tabs" :key="tab.key" type="button"
-                                    :aria-pressed="filter === tab.key"
-                                    class="rounded-full px-3 py-1 text-[0.8125rem] font-bold capitalize transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
-                                    :class="filter === tab.key
-                                        ? 'bg-nw-grad-gold text-white'
-                                        : 'text-nw-text hover:bg-nw-sky-light'" @click="filter = tab.key">
-                                    {{ tab.key }}
-                                    <span class="ml-0.5 tabular-nums opacity-70">{{ tab.count }}</span>
-                                </button>
-                            </div>
-
-                            <button v-if="hasInactive" type="button"
-                                class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
-                                :class="hideInactive ? 'bg-nw-sky-light' : ''" :aria-pressed="hideInactive"
-                                @click="hideInactive = !hideInactive">
-                                {{ hideInactive ? '✓ ' : '' }}Hide inactive
+                        <div class="flex w-full gap-1 overflow-x-auto rounded-full bg-nw-sky-light p-1 sm:w-auto"
+                            role="group" aria-label="Filter by type">
+                            <button v-for="tab in tabs" :key="tab.key" type="button"
+                                class="inline-flex shrink-0 flex-1 items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold sm:flex-none sm:gap-1.5 sm:px-3.5 sm:text-sm"
+                                :class="filter === tab.key
+                                    ? 'bg-nw-grad-gold text-white shadow-nw-gold'
+                                    : 'text-nw-text hover:bg-white/70'" :aria-pressed="filter === tab.key"
+                                @click="filter = tab.key">
+                                <span v-if="tab.icon" class="hidden sm:inline" aria-hidden="true">{{ tab.icon }}</span>
+                                {{ tab.label }}
+                                <span class="rounded-full text-[0.7rem] tabular-nums sm:px-1.5"
+                                    :class="filter === tab.key ? 'sm:bg-white/30' : 'text-nw-muted sm:bg-white'">
+                                    {{ counts[tab.key] }}
+                                </span>
                             </button>
                         </div>
+
+                        <button v-if="hasInactive" type="button"
+                            class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem] lg:ml-auto"
+                            :class="hideInactive ? 'bg-nw-sky-light' : ''" :aria-pressed="hideInactive"
+                            @click="hideInactive = !hideInactive">
+                            {{ hideInactive ? '✓ ' : '' }}Hide inactive
+                        </button>
                     </div>
                 </section>
 
                 <!-- No matches -->
-                <div v-if="groups.length === 0" class="nw-empty mt-5">
-                    No activities match your filters.
-                    <button type="button" class="nw-heading ml-1 font-bold underline" @click="clearFilters">
+                <div v-if="groups.length === 0" class="nw-card mt-5 flex flex-col items-center px-6 py-10 text-center">
+                    <p class="nw-heading font-bold">No activities match</p>
+                    <p class="nw-muted mt-1 text-sm">Try a different search or filter.</p>
+                    <button type="button" class="nw-btn nw-btn-ghost mt-4" @click="clearFilters">
                         Clear filters
                     </button>
                 </div>
 
-                <!-- Groups (Daily / Weekly / Instance ...) -->
-                <section v-for="group in groups" :key="group.key" class="mt-5">
-                    <div class="mb-2 flex items-center gap-2">
-                        <h2 class="nw-heading text-sm font-extrabold capitalize">{{ group.key }}</h2>
-                        <span class="nw-count tabular-nums">{{ group.items.length }}</span>
-                    </div>
+                <!-- Grouped by type -->
+                <div v-else class="mt-6 space-y-8">
+                    <section v-for="group in groups" :key="group.key">
+                        <div class="mb-3 flex items-center gap-3">
+                            <div class="nw-avatar h-8 w-8 rounded-[10px] text-sm" aria-hidden="true">
+                                {{ group.icon }}
+                            </div>
 
-                    <ul class="nw-card divide-y divide-nw-line">
-                        <li v-for="activity in group.items" :key="activity.id"
-                            class="flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-nw-sky-light/40 sm:flex-row sm:items-center sm:gap-4">
-                            <div class="min-w-0 flex-1" :class="isActive(activity) ? '' : 'opacity-60'">
-                                <div class="flex items-baseline gap-2">
-                                    <h3 class="nw-heading truncate text-sm font-extrabold sm:text-base">
-                                        {{ activity.name }}
-                                    </h3>
+                            <h2 class="nw-heading text-lg font-extrabold">{{ group.label }}</h2>
 
-                                    <span v-if="activity.target_count > 1" class="nw-muted shrink-0 text-xs font-bold">
-                                        ×{{ activity.target_count }}
-                                    </span>
+                            <span class="nw-count tabular-nums">{{ group.items.length }}</span>
+
+                            <div class="h-px flex-1 bg-nw-line-strong" aria-hidden="true"></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                            <article v-for="activity in group.items" :key="activity.id"
+                                class="nw-card nw-card-hover flex min-w-0 flex-col">
+                                <div class="flex items-start gap-3 p-4" :class="{ 'opacity-60': !isActive(activity) }">
+                                    <div class="nw-avatar shrink-0" aria-hidden="true">
+                                        {{ group.icon }}
+                                    </div>
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <h3 class="nw-heading text-[0.95rem] leading-snug font-extrabold"
+                                                :title="activity.name">
+                                                {{ activity.name }}
+                                            </h3>
+
+                                            <span v-if="!isActive(activity)" class="nw-status shrink-0 capitalize">
+                                                {{ activity.status }}
+                                            </span>
+                                        </div>
+
+                                        <p class="nw-muted mt-1 line-clamp-2 text-sm">
+                                            {{ activity.description || 'No description.' }}
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <p v-if="activity.description"
-                                    class="nw-muted mt-0.5 line-clamp-2 text-xs sm:text-sm lg:line-clamp-1">
-                                    {{ activity.description }}
-                                </p>
-                            </div>
+                                <div
+                                    class="mt-auto flex flex-wrap items-center gap-1.5 border-t border-nw-line px-4 py-2.5">
+                                    <span
+                                        class="rounded-full bg-nw-sky-light px-2.5 py-0.5 text-xs font-bold text-nw-navy">
+                                        🎯 Target {{ activity.target_count }}
+                                    </span>
 
-                            <div class="flex shrink-0 items-center gap-2">
-                                <!-- Only when it differs from the group, e.g. an instance that resets weekly -->
-                                <span v-if="activity.reset_type && activity.reset_type !== activity.type"
-                                    class="nw-count py-0.5 capitalize">
-                                    Resets {{ activity.reset_type }}
-                                </span>
+                                    <span
+                                        class="rounded-full bg-nw-sky-light px-2.5 py-0.5 text-xs font-bold text-nw-navy">
+                                        🔄 {{ resetLabel(activity.reset_type) }}
+                                    </span>
 
-                                <!-- Active is the norm, so only flag the exceptions -->
-                                <span v-if="!isActive(activity)" class="nw-status">
-                                    {{ activity.status }}
-                                </span>
-
-                                <button type="button" class="nw-btn nw-btn-ghost ml-auto px-3 py-1 text-[0.8125rem]"
-                                    :aria-label="`Edit ${activity.name}`" @click="openEditor(activity)">
-                                    Edit
-                                </button>
-                            </div>
-                        </li>
-                    </ul>
-                </section>
+                                    <button type="button" class="nw-btn nw-btn-ghost ml-auto px-3 py-1 text-[0.8125rem]"
+                                        :aria-label="`Edit ${activity.name}`" @click="openEditor(activity)">
+                                        Edit
+                                    </button>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
             </template>
         </div>
 
@@ -257,7 +285,22 @@ const search = ref('')
 const filter = ref('all')
 const hideInactive = ref(false)
 
+const typeIcons = { daily: '☀️', weekly: '📅', instance: '🏰' }
+
 const isActive = (activity) => activity.status === 'active'
+
+const titleCase = (value) => value.charAt(0).toUpperCase() + value.slice(1)
+
+const resetLabel = (resetType) => {
+    if (resetType === 'daily') return 'Resets daily'
+    if (resetType === 'weekly') return 'Resets weekly'
+
+    return 'No reset'
+}
+
+const activeCount = computed(() => activities.value.filter(isActive).length)
+const inactiveCount = computed(() => activities.value.length - activeCount.value)
+const hasInactive = computed(() => inactiveCount.value > 0)
 
 // Types found in the data: daily first, then weekly, then anything else (e.g. instance)
 const typeKeys = computed(() => {
@@ -269,16 +312,7 @@ const typeKeys = computed(() => {
     )
 })
 
-const tabs = computed(() => [
-    { key: 'all', count: activities.value.length },
-    ...typeKeys.value.map((key) => ({
-        key,
-        count: activities.value.filter((activity) => activity.type === key).length
-    }))
-])
-
-const hasInactive = computed(() => activities.value.some((activity) => !isActive(activity)))
-
+// Search + "hide inactive" applied; the type filter comes after, so tab counts stay meaningful
 const matches = (activity) => {
     const query = search.value.trim().toLowerCase()
 
@@ -291,11 +325,33 @@ const matches = (activity) => {
         activity.description?.toLowerCase().includes(query)
 }
 
+const counts = computed(() => {
+    const visible = activities.value.filter(matches)
+    const result = { all: visible.length }
+
+    typeKeys.value.forEach((key) => {
+        result[key] = visible.filter((activity) => activity.type === key).length
+    })
+
+    return result
+})
+
+const tabs = computed(() => [
+    { key: 'all', label: 'All', icon: '' },
+    ...typeKeys.value.map((key) => ({
+        key,
+        label: titleCase(key),
+        icon: typeIcons[key] || '⚔️'
+    }))
+])
+
 const groups = computed(() => {
     return typeKeys.value
         .filter((key) => filter.value === 'all' || filter.value === key)
         .map((key) => ({
             key,
+            label: titleCase(key),
+            icon: typeIcons[key] || '⚔️',
             items: activities.value.filter((activity) => activity.type === key && matches(activity))
         }))
         .filter((group) => group.items.length > 0)
@@ -325,8 +381,6 @@ const form = reactive({
     status: 'active',
     target_count: 1
 })
-
-const titleCase = (value) => value.charAt(0).toUpperCase() + value.slice(1)
 
 // Known values first, plus anything already used in your data
 const optionsFor = (base, key) => [

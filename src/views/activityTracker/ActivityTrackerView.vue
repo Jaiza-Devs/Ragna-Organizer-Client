@@ -32,6 +32,19 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
+                        <!-- View: group by activity or by character -->
+                        <div class="inline-flex rounded-full border border-nw-line-strong bg-white p-0.5" role="group"
+                            aria-label="Group by">
+                            <button v-for="option in viewOptions" :key="option.key" type="button"
+                                :aria-pressed="view === option.key"
+                                class="rounded-full px-3 py-1 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
+                                :class="view === option.key
+                                    ? 'bg-nw-grad-sky text-white'
+                                    : 'text-nw-text hover:bg-nw-sky-light'" @click="setView(option.key)">
+                                {{ option.label }}
+                            </button>
+                        </div>
+
                         <!-- Reset type filter -->
                         <div class="inline-flex rounded-full border border-nw-line-strong bg-white p-0.5" role="group"
                             aria-label="Filter by reset type">
@@ -74,48 +87,54 @@
                     </p>
                 </div>
 
-                <!-- Groups (Daily / Weekly / ...) -->
+                <!-- Sections: reset types (by activity) or accounts (by character) -->
                 <template v-else>
-                    <section v-for="group in groups" :key="group.key" class="mt-5">
-                        <div class="mb-2 flex items-center gap-3">
-                            <h2 class="nw-heading text-sm font-extrabold capitalize">{{ group.key }}</h2>
-                            <span class="nw-count tabular-nums">{{ group.done }} / {{ group.total }}</span>
+                    <section v-for="section in sections" :key="section.key" class="mt-5">
+                        <div v-if="section.title" class="mb-2 flex items-center gap-3">
+                            <h2 class="nw-heading text-sm font-extrabold">{{ section.title }}</h2>
+                            <span class="nw-count tabular-nums">{{ section.done }} / {{ section.total }}</span>
 
                             <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-nw-line">
                                 <div class="h-full rounded-full transition-[width] duration-500"
-                                    :class="group.done === group.total ? 'bg-nw-green' : 'bg-nw-grad-gold'"
-                                    :style="{ width: percent(group.done, group.total) + '%' }"></div>
+                                    :class="section.done === section.total ? 'bg-nw-green' : 'bg-nw-grad-gold'"
+                                    :style="{ width: percent(section.done, section.total) + '%' }"></div>
                             </div>
                         </div>
 
-                        <p v-if="group.items.length === 0" class="nw-empty">
-                            All {{ group.key }} activities are done.
+                        <p v-if="section.cards.length === 0" class="nw-empty">
+                            {{ section.emptyText }}
                         </p>
 
                         <!-- items-start so expanding one card doesn't stretch its neighbours -->
                         <div v-else class="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-                            <article v-for="activity in group.items" :key="activity.activity_id" class="nw-card">
-                                <!-- Activity header -->
+                            <article v-for="card in section.cards" :key="card.key" class="nw-card">
+                                <!-- Card header -->
                                 <button type="button"
                                     class="block w-full px-4 py-3 text-left transition-colors hover:bg-nw-sky-light/40 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-nw-gold"
-                                    :aria-expanded="expandedActivities.has(activity.activity_id)"
-                                    @click="toggleActivity(activity.activity_id)">
+                                    :aria-expanded="expandedCards.has(card.key)" @click="toggleCard(card.key)">
                                     <div class="flex items-center justify-between gap-3">
-                                        <h3 class="nw-heading min-w-0 truncate text-sm font-extrabold sm:text-base">
-                                            {{ activity.activity_name }}
-                                            <span v-if="activity.target_count > 1" class="nw-muted font-bold">
-                                                ×{{ activity.target_count }}
-                                            </span>
-                                        </h3>
+                                        <div class="flex min-w-0 items-center gap-2.5">
+                                            <div v-if="card.avatar" class="nw-avatar h-9 w-9 shrink-0 text-sm"
+                                                aria-hidden="true">
+                                                {{ card.avatar }}
+                                            </div>
+
+                                            <h3 class="nw-heading min-w-0 truncate text-sm font-extrabold sm:text-base">
+                                                {{ card.title }}
+                                                <span v-if="card.suffix" class="nw-muted ml-1 font-bold">
+                                                    {{ card.suffix }}
+                                                </span>
+                                            </h3>
+                                        </div>
 
                                         <div class="flex shrink-0 items-center gap-2">
                                             <span class="nw-status tabular-nums"
-                                                :class="isAllComplete(activity) ? 'nw-status-active' : ''">
-                                                {{ activity.completed_count }}/{{ activity.total_characters }}
+                                                :class="card.total > 0 && card.done >= card.total ? 'nw-status-active' : ''">
+                                                {{ card.done }}/{{ card.total }}
                                             </span>
 
                                             <span class="nw-muted text-[0.625rem] transition-transform duration-200"
-                                                :class="{ 'rotate-180': expandedActivities.has(activity.activity_id) }"
+                                                :class="{ 'rotate-180': expandedCards.has(card.key) }"
                                                 aria-hidden="true">
                                                 ▼
                                             </span>
@@ -124,42 +143,45 @@
 
                                     <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-nw-sky-light">
                                         <div class="h-full rounded-full transition-[width] duration-500"
-                                            :class="isAllComplete(activity) ? 'bg-nw-green' : 'bg-nw-grad-gold'"
-                                            :style="{ width: percent(activity.completed_count, activity.total_characters) + '%' }">
+                                            :class="card.total > 0 && card.done >= card.total ? 'bg-nw-green' : 'bg-nw-grad-gold'"
+                                            :style="{ width: percent(card.done, card.total) + '%' }">
                                         </div>
                                     </div>
                                 </button>
 
-                                <!-- Characters -->
-                                <div v-if="expandedActivities.has(activity.activity_id)"
+                                <!-- Rows: characters (by activity) or activities (by character) -->
+                                <div v-if="expandedCards.has(card.key)"
                                     class="divide-y divide-nw-line border-t border-nw-line">
-                                    <div v-for="character in activity.characters" :key="character.character_id"
+                                    <div v-for="row in card.rows" :key="row.key"
                                         class="flex items-center gap-3 px-4 py-2.5 transition-colors"
-                                        :class="character.completed ? 'bg-[#eaf8f0]/70' : 'hover:bg-nw-sky-light/40'">
-                                        <div class="nw-avatar nw-avatar-sky h-8 w-8 text-sm" aria-hidden="true">
-                                            {{ initial(character.character_name) }}
+                                        :class="row.character.completed ? 'bg-[#eaf8f0]/70' : 'hover:bg-nw-sky-light/40'">
+                                        <div class="nw-avatar nw-avatar-sky h-8 w-8 shrink-0 text-sm"
+                                            aria-hidden="true">
+                                            {{ row.avatar }}
                                         </div>
 
                                         <div class="min-w-0 flex-1">
-                                            <p class="truncate text-sm font-bold"
-                                                :class="character.completed ? 'text-[#217a4b]' : 'nw-heading'">
-                                                {{ character.character_name }}
+                                            <p class="line-clamp-2 text-sm leading-snug font-bold break-words"
+                                                :class="row.character.completed ? 'text-[#217a4b]' : 'nw-heading'">
+                                                {{ row.title }}
+                                                <span v-if="row.suffix" class="nw-muted ml-1 font-bold">
+                                                    {{ row.suffix }}
+                                                </span>
                                             </p>
 
-                                            <!-- Only worth showing when there's more than one account -->
-                                            <p v-if="multiAccount" class="nw-muted truncate text-xs">
-                                                {{ character.account_name }}
+                                            <p v-if="row.subtitle" class="nw-muted truncate text-xs">
+                                                {{ row.subtitle }}
                                             </p>
                                         </div>
 
                                         <!-- One run needed: a single tap target is enough -->
-                                        <button v-if="character.target_count === 1" type="button" :class="checkBtn"
-                                            class="shrink-0" :data-done="character.completed"
-                                            :aria-pressed="character.completed"
-                                            :aria-label="`${character.completed ? 'Unmark' : 'Mark'} ${character.character_name} done for ${activity.activity_name}`"
-                                            :disabled="updatingCharacter === character.character_id" @click.stop="character.completed
-                                                ? removeCompletion(activity, character)
-                                                : addCompletion(activity, character)">
+                                        <button v-if="row.character.target_count === 1" type="button" :class="checkBtn"
+                                            class="shrink-0" :data-done="row.character.completed"
+                                            :aria-pressed="row.character.completed"
+                                            :aria-label="`${row.character.completed ? 'Unmark' : 'Mark'} ${row.character.character_name} done for ${row.activity.activity_name}`"
+                                            :disabled="updatingCharacter === row.character.character_id" @click.stop="row.character.completed
+                                                ? removeCompletion(row.activity, row.character)
+                                                : addCompletion(row.activity, row.character)">
                                             ✓
                                         </button>
 
@@ -167,19 +189,19 @@
                                         <div v-else
                                             class="flex shrink-0 items-center gap-1 rounded-full border border-nw-line-strong bg-white p-1">
                                             <button type="button" :class="stepBtn" aria-label="Remove one completion"
-                                                :disabled="updatingCharacter === character.character_id || !character.current_count"
-                                                @click.stop="removeCompletion(activity, character)">
+                                                :disabled="updatingCharacter === row.character.character_id || !row.character.current_count"
+                                                @click.stop="removeCompletion(row.activity, row.character)">
                                                 −
                                             </button>
 
                                             <span
                                                 class="nw-heading min-w-10 text-center text-base font-extrabold tabular-nums">
-                                                {{ character.current_count }}/{{ character.target_count }}
+                                                {{ row.character.current_count }}/{{ row.character.target_count }}
                                             </span>
 
                                             <button type="button" :class="stepBtn" aria-label="Add one completion"
-                                                :disabled="updatingCharacter === character.character_id || character.completed"
-                                                @click.stop="addCompletion(activity, character)">
+                                                :disabled="updatingCharacter === row.character.character_id || row.character.completed"
+                                                @click.stop="addCompletion(row.activity, row.character)">
                                                 +
                                             </button>
                                         </div>
@@ -204,10 +226,27 @@ import useLoading from '@/composables/useLoading'
 
 const { startLoading, stopLoading } = useLoading()
 
+const VIEW_KEY = 'activity-tracker-view'
+
+const viewOptions = [
+    { key: 'activity', label: 'By activity' },
+    { key: 'character', label: 'By character' }
+]
+
+// Remember the last view the person used
+const readStoredView = () => {
+    try {
+        return localStorage.getItem(VIEW_KEY) === 'character' ? 'character' : 'activity'
+    } catch {
+        return 'activity'
+    }
+}
+
 const activities = ref([])
 const loading = ref(true)
 const updatingCharacter = ref(null)
-const expandedActivities = ref(new Set())
+const expandedCards = ref(new Set())
+const view = ref(readStoredView())
 const filter = ref('all')
 const hideDone = ref(false)
 
@@ -220,7 +259,11 @@ const checkBtn =
     'border-nw-line-strong bg-white text-transparent hover:bg-nw-sky-light ' +
     'data-[done=true]:border-white data-[done=true]:bg-nw-green data-[done=true]:text-white data-[done=true]:shadow-md'
 
+const typeIcons = { daily: '☀️', weekly: '📅' }
+
 const typeOf = (activity) => activity.reset_type || activity.type
+
+const cap = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : '')
 
 // Drops a leading guild/party tag like "[DPS]" so the avatar shows a real letter
 const initial = (name) => {
@@ -259,21 +302,6 @@ const tabs = computed(() => [
     ...typeKeys.value.map((key) => ({ key }))
 ])
 
-const groups = computed(() => {
-    return typeKeys.value
-        .filter((key) => filter.value === 'all' || filter.value === key)
-        .map((key) => {
-            const all = activities.value.filter((activity) => typeOf(activity) === key)
-
-            return {
-                key,
-                done: sumOf(all, 'completed_count'),
-                total: sumOf(all, 'total_characters'),
-                items: hideDone.value ? all.filter((activity) => !isAllComplete(activity)) : all
-            }
-        })
-})
-
 const multiAccount = computed(() => {
     const ids = activities.value.flatMap((activity) =>
         activity.characters.map((character) => character.account_id)
@@ -282,32 +310,171 @@ const multiAccount = computed(() => {
     return new Set(ids).size > 1
 })
 
-const allExpanded = computed(() => {
-    return activities.value.length > 0 &&
-        expandedActivities.value.size === activities.value.length
+// ---- The two views share one shape: sections > cards > rows ----------------
+// Every row points at the same activity/character objects, so taps in either
+// view update the same data.
+
+// By activity: reset type > activity > characters
+const activitySections = computed(() => {
+    return typeKeys.value
+        .filter((key) => filter.value === 'all' || filter.value === key)
+        .map((key) => {
+            const all = activities.value.filter((activity) => typeOf(activity) === key)
+            const visible = hideDone.value ? all.filter((activity) => !isAllComplete(activity)) : all
+
+            return {
+                key: `type:${key}`,
+                title: cap(key),
+                done: sumOf(all, 'completed_count'),
+                total: sumOf(all, 'total_characters'),
+                emptyText: `All ${key} activities are done.`,
+                cards: visible.map((activity) => ({
+                    key: `a:${activity.activity_id}`,
+                    title: activity.activity_name,
+                    suffix: activity.target_count > 1 ? `×${activity.target_count}` : '',
+                    avatar: '',
+                    done: activity.completed_count,
+                    total: activity.total_characters,
+                    rows: activity.characters.map((character) => ({
+                        key: character.character_id,
+                        activity,
+                        character,
+                        title: character.character_name,
+                        suffix: '',
+                        // Only worth showing when there's more than one account
+                        subtitle: multiAccount.value ? character.account_name : '',
+                        avatar: initial(character.character_name)
+                    }))
+                }))
+            }
+        })
 })
 
-const toggleActivity = (activityId) => {
-    const expanded = new Set(expandedActivities.value)
+// By character: account (only if there are several) > character > activities
+const characterSections = computed(() => {
+    const people = new Map()
 
-    if (expanded.has(activityId)) {
-        expanded.delete(activityId)
+    typeKeys.value
+        .filter((key) => filter.value === 'all' || filter.value === key)
+        .forEach((key) => {
+            activities.value
+                .filter((activity) => typeOf(activity) === key)
+                .forEach((activity) => {
+                    activity.characters.forEach((character) => {
+                        if (!people.has(character.character_id)) {
+                            people.set(character.character_id, {
+                                id: character.character_id,
+                                name: character.character_name,
+                                accountKey: String(character.account_id ?? character.account_name ?? ''),
+                                accountName: character.account_name,
+                                rows: []
+                            })
+                        }
+
+                        people.get(character.character_id).rows.push({
+                            key: activity.activity_id,
+                            activity,
+                            character,
+                            title: activity.activity_name,
+                            suffix: activity.target_count > 1 ? `×${activity.target_count}` : '',
+                            subtitle: cap(key),
+                            avatar: typeIcons[key] || '⚔️'
+                        })
+                    })
+                })
+        })
+
+    const buckets = new Map()
+
+    Array.from(people.values()).forEach((person) => {
+        const bucketKey = multiAccount.value ? person.accountKey : 'all'
+
+        if (!buckets.has(bucketKey)) {
+            buckets.set(bucketKey, { name: person.accountName, people: [] })
+        }
+
+        buckets.get(bucketKey).people.push(person)
+    })
+
+    return Array.from(buckets.entries()).map(([bucketKey, bucket]) => {
+        const cards = bucket.people.map((person) => ({
+            key: `c:${person.id}`,
+            title: person.name,
+            suffix: '',
+            avatar: initial(person.name),
+            done: person.rows.filter((row) => row.character.completed).length,
+            total: person.rows.length,
+            rows: hideDone.value ? person.rows.filter((row) => !row.character.completed) : person.rows
+        }))
+
+        return {
+            key: `account:${bucketKey}`,
+            title: multiAccount.value ? bucket.name : '',
+            done: sumOf(cards, 'done'),
+            total: sumOf(cards, 'total'),
+            emptyText: 'Everyone is done here. 🎉',
+            cards: hideDone.value ? cards.filter((card) => card.rows.length > 0) : cards
+        }
+    })
+})
+
+const sections = computed(() => {
+    return view.value === 'character' ? characterSections.value : activitySections.value
+})
+
+// ---- Expand / collapse -----------------------------------------------------
+
+const visibleCardKeys = computed(() => {
+    return sections.value.flatMap((section) => section.cards.map((card) => card.key))
+})
+
+const allExpanded = computed(() => {
+    return visibleCardKeys.value.length > 0 &&
+        visibleCardKeys.value.every((key) => expandedCards.value.has(key))
+})
+
+const toggleCard = (key) => {
+    const expanded = new Set(expandedCards.value)
+
+    if (expanded.has(key)) {
+        expanded.delete(key)
     } else {
-        expanded.add(activityId)
+        expanded.add(key)
     }
 
-    expandedActivities.value = expanded
+    expandedCards.value = expanded
 }
 
 const expandAll = () => {
-    expandedActivities.value = new Set(
-        activities.value.map((activity) => activity.activity_id)
-    )
+    expandedCards.value = new Set([...expandedCards.value, ...visibleCardKeys.value])
 }
 
 const collapseAll = () => {
-    expandedActivities.value = new Set()
+    expandedCards.value = new Set()
 }
+
+const isRoomy = () => window.matchMedia('(min-width: 768px)').matches
+
+const setView = (next) => {
+    if (view.value === next) {
+        return
+    }
+
+    view.value = next
+
+    try {
+        localStorage.setItem(VIEW_KEY, next)
+    } catch {
+        // storage unavailable: the choice just won't be remembered
+    }
+
+    // Roomy screens keep everything open after switching
+    if (isRoomy()) {
+        expandAll()
+    }
+}
+
+// ---- Data ------------------------------------------------------------------
 
 // silent = refresh the data without the "Loading..." state, so the list
 // doesn't flash and the buttons don't move under the cursor
@@ -395,7 +562,7 @@ onMounted(async () => {
     await fetchActivityTracker()
 
     // Roomy screens start fully open; phones start collapsed so the page isn't a wall
-    if (window.matchMedia('(min-width: 768px)').matches) {
+    if (isRoomy()) {
         expandAll()
     }
 })
