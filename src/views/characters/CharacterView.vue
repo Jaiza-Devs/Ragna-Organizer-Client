@@ -1,9 +1,10 @@
 <template>
-    <div class="nw-page">
+    <div class="nw-page p-4 sm:p-6">
         <div class="mx-auto max-w-6xl">
             <!-- Page header -->
             <div class="flex flex-col gap-3">
-                <button type="button" class="nw-muted w-fit text-xs font-semibold transition-colors hover:underline"
+                <button type="button"
+                    class="nw-muted w-fit py-1.5 text-xs font-semibold transition-colors hover:underline"
                     @click="router.push(`/accounts/${route.params.accountId}`)">
                     ← Back to Account
                 </button>
@@ -39,12 +40,13 @@
             </div>
 
             <!-- Two-column layout: activities (main) + details & funds (sidebar) -->
-            <div v-else-if="character" class="mt-5 grid gap-4 lg:grid-cols-3 lg:items-start">
+            <div v-else-if="character" class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
                 <!-- Activities (first on mobile, right column on desktop) -->
-                <section class="nw-card lg:col-span-2 lg:col-start-2 lg:row-start-1">
-                    <header class="nw-card-header flex items-center justify-between gap-3 px-4 py-3">
+                <section class="nw-card min-w-0 lg:col-span-2 lg:col-start-2 lg:row-start-1">
+                    <header
+                        class="nw-card-header flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
                         <div class="min-w-0">
-                            <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                 <h2 class="nw-card-title text-base font-bold">Activities</h2>
                                 <span v-if="activities.length" class="nw-status"
                                     :class="totalDone === activities.length ? 'nw-status-active' : ''">
@@ -77,7 +79,7 @@
                                     </span>
                                 </div>
 
-                                <div class="grid gap-2 sm:grid-cols-2">
+                                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                                     <button v-for="activity in group.activities" :key="activity.id" type="button"
                                         class="nw-activity"
                                         :class="{ 'nw-activity-done': isActivityCompleted(activity) }"
@@ -111,7 +113,7 @@
                 </section>
 
                 <!-- Sidebar: details + funds -->
-                <aside class="space-y-4 lg:col-start-1 lg:row-start-1">
+                <aside class="min-w-0 space-y-4 lg:col-start-1 lg:row-start-1">
                     <!-- Character details -->
                     <section class="nw-card transition-shadow duration-150"
                         :class="editing ? 'ring-2 ring-sky-500/40' : ''">
@@ -181,8 +183,8 @@
                                     </label>
 
                                     <input :id="`field-${field.key}`" v-model="editForm[field.key]" type="text"
-                                        class="nw-input mt-1 w-full" :placeholder="field.placeholder"
-                                        :required="field.required" autocomplete="off">
+                                        class="text-base sm:text-[0.9rem] nw-input mt-1 w-full"
+                                        :placeholder="field.placeholder" :required="field.required" autocomplete="off">
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-3">
@@ -192,7 +194,7 @@
                                             Level
                                         </label>
                                         <input id="field-level" v-model="editForm.level" type="number" min="0" step="1"
-                                            class="nw-input mt-1 w-full">
+                                            class="text-base sm:text-[0.9rem] nw-input mt-1 w-full">
                                     </div>
 
                                     <div>
@@ -201,7 +203,7 @@
                                             Job Level
                                         </label>
                                         <input id="field-job_level" v-model="editForm.job_level" type="number" min="0"
-                                            step="1" class="nw-input mt-1 w-full">
+                                            step="1" class="text-base sm:text-[0.9rem] nw-input mt-1 w-full">
                                     </div>
                                 </div>
 
@@ -211,7 +213,7 @@
                                         Status
                                     </label>
                                     <select id="field-status" v-model="editForm.status"
-                                        class="nw-input nw-select mt-1 w-full">
+                                        class="text-base sm:text-[0.9rem] nw-input nw-select mt-1 w-full">
                                         <option value="active">Active</option>
                                         <option value="inactive">Inactive</option>
                                     </select>
@@ -224,7 +226,7 @@
                                         <span class="font-normal normal-case tracking-normal">(optional)</span>
                                     </label>
                                     <textarea id="field-notes" v-model="editForm.notes" rows="3"
-                                        class="nw-input mt-1 w-full resize-none"
+                                        class="text-base sm:text-[0.9rem] nw-input mt-1 w-full resize-none"
                                         placeholder="Anything worth remembering about this character"></textarea>
                                 </div>
                             </div>
@@ -291,7 +293,7 @@
 
                                         <select id="currency_id" v-model="currencyForm.currency_id"
                                             :disabled="!!editingCharacterCurrency"
-                                            class="nw-input nw-select disabled:bg-nw-sky-light disabled:text-nw-muted">
+                                            class="text-base sm:text-[0.9rem] nw-input nw-select disabled:bg-nw-sky-light disabled:text-nw-muted">
                                             <option value="" disabled>
                                                 Select currency
                                             </option>
@@ -307,7 +309,8 @@
                                         <label for="currency_amount" class="nw-label">Amount</label>
 
                                         <input id="currency_amount" v-model="currencyForm.amount" type="number" min="0"
-                                            step="1" class="nw-input" placeholder="Enter amount" />
+                                            step="1" class="text-base sm:text-[0.9rem] nw-input"
+                                            placeholder="Enter amount" />
                                     </div>
                                 </div>
 
@@ -329,10 +332,10 @@
 
                             <div v-else class="space-y-2">
                                 <div v-for="characterCurrency in characterCurrencies" :key="characterCurrency.id"
-                                    class="nw-fund">
+                                    class="nw-fund flex-wrap">
                                     <div class="nw-coin" aria-hidden="true">🪙</div>
 
-                                    <div class="min-w-0 flex-1">
+                                    <div class="min-w-0 flex-1 basis-28">
                                         <p class="nw-value truncate text-sm font-bold">
                                             {{ getCurrencyName(characterCurrency.currency_id) }}
                                         </p>
@@ -342,14 +345,17 @@
                                         </p>
                                     </div>
 
-                                    <p class="nw-heading text-base font-extrabold tabular-nums">
-                                        {{ formatAmount(characterCurrency.amount) }}
-                                    </p>
+                                    <!-- Drops to its own line on narrow screens when the balance is long -->
+                                    <div class="ml-auto flex shrink-0 items-center gap-3">
+                                        <p class="nw-heading text-base font-extrabold tabular-nums">
+                                            {{ formatAmount(characterCurrency.amount) }}
+                                        </p>
 
-                                    <button type="button" class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
-                                        @click="openCurrencyForm(characterCurrency)">
-                                        Edit
-                                    </button>
+                                        <button type="button" class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
+                                            @click="openCurrencyForm(characterCurrency)">
+                                            Edit
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
