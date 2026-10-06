@@ -14,6 +14,9 @@ import CharacterView from '@/views/characters/CharacterView.vue'
 import ActivityListView from '@/views/activities/ActivityListView.vue'
 import ActivityCreateView from '@/views/activities/ActivityCreateView.vue'
 
+// Activity Tracker
+import ActivityTrackerView from '@/views/activityTracker/ActivityTrackerView.vue'
+
 // Activity Completions
 import ActivityHistoryView from '@/views/activities/ActivityHistoryView.vue'
 
@@ -69,6 +72,13 @@ const routes = [
         path: 'activities/create',
         name: 'activity-create',
         component: ActivityCreateView
+      },
+
+      // Activity Tracker
+      {
+        path: 'activity-tracker',
+        name: 'activity-tracker',
+        component: ActivityTrackerView
       },
 
       // Activity Completions

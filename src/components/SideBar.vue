@@ -62,6 +62,7 @@ const items = [
     { to: '/', label: 'Dashboard', icon: '🏰' },
     { to: '/accounts', label: 'Accounts', icon: '👤' },
     { to: '/activities', label: 'Activities', icon: '⚔️' },
+    { to: '/activity-tracker', label: 'Activity Tracker', icon: '📋' },
     { to: '/currencies', label: 'Currencies', icon: '🪙' },
 ]
 </script>
