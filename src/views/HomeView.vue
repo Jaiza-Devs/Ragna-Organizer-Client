@@ -21,12 +21,6 @@
                             {{ option.label }}
                         </button>
                     </div>
-
-                    <button type="button" class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
-                        :class="pendingOnly ? 'bg-nw-sky-light' : ''" :aria-pressed="pendingOnly"
-                        @click="pendingOnly = !pendingOnly">
-                        {{ pendingOnly ? '✓ ' : '' }}Pending only
-                    </button>
                 </div>
             </div>
 
@@ -90,40 +84,92 @@
                             </div>
                         </header>
 
-                        <div v-if="section.groups.length === 0" class="px-4 py-8 text-center">
-                            <p class="nw-muted text-sm">
-                                {{ pendingOnly && section.hasItems ? 'All caught up 🎉' : section.emptyText }}
+                        <p v-if="!section.hasItems" class="nw-muted px-4 py-8 text-center text-sm">
+                            {{ section.emptyText }}
+                        </p>
+
+                        <template v-else>
+                            <p v-if="section.active.length === 0" class="nw-muted px-4 py-6 text-center text-sm">
+                                All caught up 🎉
                             </p>
-                        </div>
 
-                        <!-- One compact row per group; each chip is one character/activity pair -->
-                        <ul v-else class="divide-y divide-nw-line">
-                            <li v-for="group in section.groups" :key="group.id"
-                                class="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5"
-                                :class="group.done === group.total ? 'bg-nw-green/5' : ''">
-                                <div class="min-w-0 flex-1 basis-36">
-                                    <p class="truncate text-sm font-extrabold"
-                                        :class="group.done === group.total ? 'text-[#217a4b]' : 'nw-heading'">
-                                        {{ group.label }}
-                                    </p>
-                                    <p v-if="group.sub" class="nw-muted truncate text-xs">{{ group.sub }}</p>
-                                </div>
-
-                                <ul class="flex min-w-0 flex-wrap gap-1.5"
-                                    :class="groupBy === 'activity' ? 'max-w-full shrink-0' : 'flex-[2] basis-56'">
-                                    <li v-for="chip in group.chips" :key="chip.id" :title="chip.title"
-                                        class="inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold"
-                                        :class="chipClass[chip.state]">
-                                        <span v-if="chip.state === 'done'" aria-hidden="true">✓</span>
-                                        <span class="truncate">{{ chip.label }}</span>
-                                        <span v-if="chip.target > 1" class="tabular-nums opacity-70">
-                                            {{ chip.current }}/{{ chip.target }}
+                            <!-- One row per group. Closed: a few pending chips. Open: every chip. -->
+                            <ul v-if="rowsFor(section).length > 0" class="divide-y divide-nw-line">
+                                <li v-for="group in rowsFor(section)" :key="group.id"
+                                    class="flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5 transition-colors hover:bg-nw-sky-light/40"
+                                    :class="group.done === group.total ? 'bg-nw-green/5' : ''"
+                                    @click="toggleRow(group)">
+                                    <button type="button"
+                                        class="order-1 min-w-0 flex-1 basis-36 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
+                                        :aria-expanded="isOpen(group)" @click.stop="toggleRow(group)">
+                                        <span class="block truncate text-sm font-extrabold"
+                                            :class="group.done === group.total ? 'text-[#217a4b]' : 'nw-heading'">
+                                            {{ group.label }}
                                         </span>
-                                        <span class="sr-only">, {{ stateLabel[chip.state] }}</span>
-                                    </li>
-                                </ul>
-                            </li>
-                        </ul>
+                                        <span v-if="group.sub" class="nw-muted block truncate text-xs">
+                                            {{ group.sub }}
+                                        </span>
+                                    </button>
+
+                                    <ul class="flex min-w-0 flex-wrap gap-1.5" :class="isOpen(group)
+                                        ? 'order-4 basis-full'
+                                        : groupBy === 'activity'
+                                            ? 'order-2 max-w-full shrink-0'
+                                            : 'order-2 flex-[2] basis-56'">
+                                        <li v-for="chip in isOpen(group) ? group.chips : group.preview" :key="chip.id"
+                                            :title="chip.title"
+                                            class="inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold"
+                                            :class="chipClass[chip.state]">
+                                            <span v-if="chip.state === 'done'" aria-hidden="true">✓</span>
+                                            <span class="truncate">{{ chip.label }}</span>
+                                            <span v-if="chip.target > 1" class="tabular-nums opacity-70">
+                                                {{ chip.current }}/{{ chip.target }}
+                                            </span>
+                                            <span class="sr-only">, {{ stateLabel[chip.state] }}</span>
+                                        </li>
+
+                                        <li v-if="!isOpen(group) && group.more > 0"
+                                            class="inline-flex items-center rounded-full border border-dashed border-nw-line-strong px-2.5 py-0.5 text-xs font-bold text-nw-muted">
+                                            +{{ group.more }} more
+                                        </li>
+
+                                        <li v-if="!isOpen(group) && group.preview.length === 0"
+                                            class="py-0.5 text-xs font-bold text-[#217a4b]">
+                                            All done
+                                        </li>
+                                    </ul>
+
+                                    <div class="order-3 flex shrink-0 items-center gap-2">
+                                        <span class="nw-progress tabular-nums"
+                                            :class="progressClass(group.done, group.total)">
+                                            {{ group.done }} / {{ group.total }}
+                                        </span>
+
+                                        <span class="nw-muted w-3 text-xs transition-transform"
+                                            :class="isOpen(group) ? 'rotate-90' : ''" aria-hidden="true">
+                                            ▸
+                                        </span>
+                                    </div>
+                                </li>
+                            </ul>
+
+                            <div v-if="section.active.length > ROW_LIMIT || section.finished.length > 0"
+                                class="flex flex-wrap gap-2 border-t border-nw-line px-4 py-2.5">
+                                <button v-if="section.active.length > ROW_LIMIT" type="button"
+                                    class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
+                                    @click="toggleFlag(showAll, section.key)">
+                                    {{ showAll[section.key] ? 'Show fewer' : `Show ${section.active.length - ROW_LIMIT}
+                                    more` }}
+                                </button>
+
+                                <button v-if="section.finished.length > 0" type="button"
+                                    class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
+                                    @click="toggleFlag(showFinished, section.key)">
+                                    {{ showFinished[section.key] ? 'Hide finished' : `Show ${section.finished.length}
+                                    finished` }}
+                                </button>
+                            </div>
+                        </template>
                     </section>
                 </div>
 
@@ -165,7 +211,7 @@
                                 </div>
 
                                 <ul class="divide-y divide-nw-line">
-                                    <li v-for="character in account.characters" :key="character.character_id"
+                                    <li v-for="character in visibleCharacters(account)" :key="character.character_id"
                                         class="flex items-center gap-3 px-4 py-2">
                                         <div class="nw-avatar nw-avatar-sky h-8 w-8 text-sm" aria-hidden="true">
                                             {{ initial(character.character_name) }}
@@ -190,6 +236,15 @@
                                         </div>
                                     </li>
                                 </ul>
+
+                                <button v-if="account.characters.length > ZENY_LIMIT" type="button"
+                                    class="nw-muted w-full border-t border-nw-line px-4 py-2 text-left text-xs font-bold transition-colors hover:bg-nw-sky-light/40"
+                                    :aria-expanded="zenyOpen.has(account.account_id)"
+                                    @click="toggleZeny(account.account_id)">
+                                    {{ zenyOpen.has(account.account_id)
+                                        ? `Show top ${ZENY_LIMIT} only`
+                                        : `Show ${account.characters.length - ZENY_LIMIT} more` }}
+                                </button>
                             </div>
                         </div>
                     </section>
@@ -271,12 +326,50 @@ const dashboard = ref({
 
 // ---- View state ----
 const groupBy = ref('activity')
-const pendingOnly = ref(false)
 
 const groupOptions = [
     { value: 'activity', label: 'By activity' },
     { value: 'character', label: 'By character' }
 ]
+
+// Keeps every list short however large the roster gets
+const PREVIEW_CHIPS = 3 // pending chips shown on a closed row
+const ROW_LIMIT = 8 // unfinished rows shown per section before "Show more"
+const ZENY_LIMIT = 5 // characters shown per account in the Zeny card
+
+const openRows = ref(new Set())
+const zenyOpen = ref(new Set())
+const showAll = ref({})
+const showFinished = ref({})
+
+const toggleIn = (setRef, key) => {
+    const next = new Set(setRef.value)
+
+    if (next.has(key)) {
+        next.delete(key)
+    } else {
+        next.add(key)
+    }
+
+    setRef.value = next
+}
+
+const isOpen = (group) => openRows.value.has(group.id)
+const toggleRow = (group) => toggleIn(openRows, group.id)
+const toggleZeny = (accountId) => toggleIn(zenyOpen, accountId)
+
+const toggleFlag = (flags, key) => {
+    flags[key] = !flags[key]
+}
+
+// Unfinished rows (capped unless expanded), then finished rows if asked for
+const rowsFor = (section) => {
+    const active = showAll.value[section.key]
+        ? section.active
+        : section.active.slice(0, ROW_LIMIT)
+
+    return showFinished.value[section.key] ? [...active, ...section.finished] : active
+}
 
 const chipClass = {
     done: 'border-[#a8dcc1] bg-[#eaf8f0] text-[#217a4b]',
@@ -350,24 +443,38 @@ const buildGroups = (items) => {
     }
 
     return [...map.values()]
-        .map((group) => ({
-            ...group,
-            // counted before the pending filter so the row still knows if it's finished
-            done: group.chips.filter((chip) => chip.state === 'done').length,
-            total: group.chips.length,
-            chips: group.chips
-                .filter((chip) => !pendingOnly.value || chip.state !== 'done')
-                .sort((a, b) =>
-                    Number(a.state === 'done') - Number(b.state === 'done') ||
-                    a.label.localeCompare(b.label)
-                )
-        }))
-        .filter((group) => group.chips.length > 0)
+        .map((group) => {
+            // pending / in-progress first, finished last, then by name
+            const chips = [...group.chips].sort((a, b) =>
+                Number(a.state === 'done') - Number(b.state === 'done') ||
+                a.label.localeCompare(b.label)
+            )
+            const pending = chips.filter((chip) => chip.state !== 'done')
+
+            return {
+                ...group,
+                chips,
+                done: chips.length - pending.length,
+                total: chips.length,
+                preview: pending.slice(0, PREVIEW_CHIPS),
+                more: Math.max(pending.length - PREVIEW_CHIPS, 0)
+            }
+        })
         // rows with work left first, then alphabetical
         .sort((a, b) =>
             Number(a.done === a.total) - Number(b.done === b.total) ||
             a.label.localeCompare(b.label)
         )
+}
+
+// Rows with work left vs rows that are completely done
+const splitGroups = (items) => {
+    const groups = buildGroups(items)
+
+    return {
+        active: groups.filter((group) => group.done < group.total),
+        finished: groups.filter((group) => group.done === group.total)
+    }
 }
 
 // ---- Zeny ----
@@ -391,6 +498,12 @@ const zenyAccounts = computed(() => {
 const zenyCharacterCount = computed(() => {
     return zenyAccounts.value.reduce((sum, account) => sum + account.characters.length, 0)
 })
+
+const visibleCharacters = (account) => {
+    return zenyOpen.value.has(account.account_id)
+        ? account.characters
+        : account.characters.slice(0, ZENY_LIMIT)
+}
 
 // ---- Derived view data ----
 // Four tiles: the accounts count already lives in the Accounts card,
@@ -441,7 +554,7 @@ const sections = computed(() => {
             completed: s.daily_completed,
             total: s.daily_completed + s.daily_remaining,
             hasItems: dashboard.value.daily_activities.length > 0,
-            groups: buildGroups(dashboard.value.daily_activities)
+            ...splitGroups(dashboard.value.daily_activities)
         },
         {
             key: 'weekly',
@@ -451,7 +564,7 @@ const sections = computed(() => {
             completed: s.weekly_completed,
             total: s.weekly_completed + s.weekly_remaining,
             hasItems: dashboard.value.weekly_activities.length > 0,
-            groups: buildGroups(dashboard.value.weekly_activities)
+            ...splitGroups(dashboard.value.weekly_activities)
         }
     ]
 })
