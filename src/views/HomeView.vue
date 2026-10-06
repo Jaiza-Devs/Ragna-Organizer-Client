@@ -1,5 +1,5 @@
 <template>
-    <div class="nw-page">
+    <div class="nw-page p-3 sm:p-6 lg:p-8">
         <div class="mx-auto max-w-7xl space-y-4">
             <!-- Page header -->
             <div class="flex flex-wrap items-end justify-between gap-3">
@@ -9,41 +9,49 @@
                 </div>
 
                 <!-- View controls -->
-                <div v-if="!loading" class="flex flex-wrap items-center gap-2">
-                    <div class="flex items-center gap-1" role="group" aria-label="Group activities by">
-                        <span class="nw-muted mr-1 text-xs font-semibold">Group by</span>
-
+                <div v-if="!loading && !loadError" class="flex flex-wrap items-center gap-2">
+                    <div class="inline-flex rounded-full border border-nw-line-strong bg-white p-0.5" role="group"
+                        aria-label="Group activities by">
                         <button v-for="option in groupOptions" :key="option.value" type="button"
-                            class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
-                            :class="groupBy === option.value ? 'border-nw-sky bg-nw-sky-light font-bold' : ''"
-                            :aria-pressed="groupBy === option.value" @click="groupBy = option.value">
+                            :aria-pressed="groupBy === option.value"
+                            class="rounded-full px-3 py-1 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
+                            :class="groupBy === option.value
+                                ? 'bg-nw-grad-gold text-white'
+                                : 'text-nw-text hover:bg-nw-sky-light'" @click="groupBy = option.value">
                             {{ option.label }}
                         </button>
                     </div>
 
                     <button type="button" class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
-                        :class="pendingOnly ? 'border-nw-sky bg-nw-sky-light font-bold' : ''"
-                        :aria-pressed="pendingOnly" @click="pendingOnly = !pendingOnly">
-                        Pending only
+                        :class="pendingOnly ? 'bg-nw-sky-light' : ''" :aria-pressed="pendingOnly"
+                        @click="pendingOnly = !pendingOnly">
+                        {{ pendingOnly ? '✓ ' : '' }}Pending only
                     </button>
                 </div>
             </div>
 
+            <!-- Loading -->
             <div v-if="loading" class="nw-card px-4 py-6 text-center text-sm nw-muted">
                 Loading dashboard...
             </div>
 
+            <!-- Error: without this the page would show a misleading wall of zeros -->
+            <div v-else-if="loadError" class="nw-card flex flex-col items-center px-6 py-10 text-center">
+                <p class="nw-heading font-bold">Couldn't load the dashboard</p>
+                <p class="nw-muted mt-1 text-sm">Check your connection and try again.</p>
+                <button type="button" class="nw-btn nw-btn-sky mt-4" @click="fetchDashboard">
+                    Try again
+                </button>
+            </div>
+
             <template v-else>
                 <!-- Stat tiles -->
-                <section class="grid grid-cols-2 gap-3 lg:grid-cols-5">
-                    <div v-for="tile in statTiles" :key="tile.label" class="nw-card min-w-0 p-4"
-                        :class="tile.wide ? 'col-span-2 lg:col-span-1' : ''">
-                        <p class="nw-muted text-[11px] font-semibold uppercase tracking-wide">
-                            {{ tile.label }}
-                        </p>
+                <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <div v-for="tile in statTiles" :key="tile.label" class="nw-card min-w-0 p-4">
+                        <p class="nw-muted text-xs font-semibold">{{ tile.label }}</p>
 
-                        <p class="mt-1 truncate text-2xl font-extrabold tabular-nums"
-                            :class="tile.good ? 'text-nw-green' : 'nw-heading'">
+                        <p class="mt-1 truncate text-xl font-extrabold tabular-nums sm:text-2xl"
+                            :class="tile.good ? 'text-nw-green' : 'nw-heading'" :title="tile.display">
                             {{ tile.display }}
                         </p>
 
@@ -53,28 +61,33 @@
                                     :style="{ width: `${percent(tile.done, tile.total)}%` }"></div>
                             </div>
 
-                            <p class="nw-muted mt-1.5 text-xs">
-                                {{ tile.done }} of {{ tile.total }} done
-                            </p>
+                            <p class="nw-muted mt-1.5 text-xs">{{ tile.done }} of {{ tile.total }} done</p>
                         </template>
 
-                        <p v-else-if="tile.sub" class="nw-muted mt-2 text-xs">{{ tile.sub }}</p>
+                        <p v-else class="nw-muted mt-2 text-xs">{{ tile.sub }}</p>
                     </div>
                 </section>
 
                 <!-- Daily + weekly, side by side on desktop -->
                 <div class="grid gap-4 lg:grid-cols-2 lg:items-start">
                     <section v-for="section in sections" :key="section.key" class="nw-card">
-                        <header class="nw-card-header flex items-center justify-between gap-3 px-4 py-3">
+                        <header class="flex items-center justify-between gap-3 border-b border-nw-line px-4 py-3">
                             <div class="min-w-0">
-                                <h2 class="nw-card-title text-base font-bold">{{ section.title }}</h2>
-                                <p class="nw-card-sub text-xs">{{ section.reset }}</p>
+                                <h2 class="nw-heading text-base font-extrabold">{{ section.title }}</h2>
+                                <p class="nw-muted text-xs">{{ section.reset }}</p>
                             </div>
 
-                            <span class="nw-status shrink-0"
-                                :class="section.total > 0 && section.completed === section.total ? 'nw-status-active' : ''">
-                                {{ section.completed }} / {{ section.total }}
-                            </span>
+                            <div class="flex shrink-0 items-center gap-2">
+                                <span class="nw-progress tabular-nums"
+                                    :class="progressClass(section.completed, section.total)">
+                                    {{ section.completed }} / {{ section.total }}
+                                </span>
+
+                                <RouterLink :to="TRACKER_ROUTE" aria-label="Open activity tracker"
+                                    class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem] no-underline">
+                                    Track
+                                </RouterLink>
+                            </div>
                         </header>
 
                         <div v-if="section.groups.length === 0" class="px-4 py-8 text-center">
@@ -83,55 +96,34 @@
                             </p>
                         </div>
 
-                        <div v-else class="divide-y divide-nw-line">
-                            <div v-for="group in section.groups" :key="group.id">
-                                <!-- Group header -->
-                                <button type="button"
-                                    class="flex w-full items-center gap-2 bg-nw-sky-light/40 px-4 py-2 text-left transition hover:bg-nw-sky-light/70"
-                                    :aria-expanded="!isCollapsed(group)" @click="toggleGroup(group)">
-                                    <span class="nw-muted w-3 text-xs transition-transform"
-                                        :class="isCollapsed(group) ? '' : 'rotate-90'" aria-hidden="true">
-                                        ▸
-                                    </span>
-
-                                    <span class="nw-heading min-w-0 flex-1 truncate text-sm font-extrabold">
+                        <!-- One compact row per group; each chip is one character/activity pair -->
+                        <ul v-else class="divide-y divide-nw-line">
+                            <li v-for="group in section.groups" :key="group.id"
+                                class="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5"
+                                :class="group.done === group.total ? 'bg-nw-green/5' : ''">
+                                <div class="min-w-0 flex-1 basis-36">
+                                    <p class="truncate text-sm font-extrabold"
+                                        :class="group.done === group.total ? 'text-[#217a4b]' : 'nw-heading'">
                                         {{ group.label }}
-                                    </span>
+                                    </p>
+                                    <p v-if="group.sub" class="nw-muted truncate text-xs">{{ group.sub }}</p>
+                                </div>
 
-                                    <span class="nw-progress" :class="group.done === group.total
-                                        ? 'nw-progress-done'
-                                        : group.done > 0
-                                            ? 'nw-progress-partial'
-                                            : ''">
-                                        {{ group.done }} / {{ group.total }}
-                                    </span>
-                                </button>
-
-                                <!-- Group rows -->
-                                <ul v-if="!isCollapsed(group)" class="divide-y divide-nw-line">
-                                    <li v-for="row in group.rows" :key="row.id"
-                                        class="flex items-center gap-3 px-4 py-2"
-                                        :class="row.completed ? 'bg-nw-green/5' : ''">
-                                        <div class="nw-avatar nw-avatar-sky h-8 w-8 text-sm" aria-hidden="true">
-                                            {{ row.initial }}
-                                        </div>
-
-                                        <div class="min-w-0 flex-1">
-                                            <p class="nw-heading truncate text-sm font-bold">{{ row.primary }}</p>
-                                            <p class="nw-muted truncate text-xs">{{ row.secondary }}</p>
-                                        </div>
-
-                                        <span class="nw-progress" :class="row.completed
-                                            ? 'nw-progress-done'
-                                            : row.current_count > 0
-                                                ? 'nw-progress-partial'
-                                                : ''">
-                                            {{ row.current_count }} / {{ row.target_count }}
+                                <ul class="flex min-w-0 flex-wrap gap-1.5"
+                                    :class="groupBy === 'activity' ? 'max-w-full shrink-0' : 'flex-[2] basis-56'">
+                                    <li v-for="chip in group.chips" :key="chip.id" :title="chip.title"
+                                        class="inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold"
+                                        :class="chipClass[chip.state]">
+                                        <span v-if="chip.state === 'done'" aria-hidden="true">✓</span>
+                                        <span class="truncate">{{ chip.label }}</span>
+                                        <span v-if="chip.target > 1" class="tabular-nums opacity-70">
+                                            {{ chip.current }}/{{ chip.target }}
                                         </span>
+                                        <span class="sr-only">, {{ stateLabel[chip.state] }}</span>
                                     </li>
                                 </ul>
-                            </div>
-                        </div>
+                            </li>
+                        </ul>
                     </section>
                 </div>
 
@@ -139,13 +131,13 @@
                 <div class="grid gap-4 lg:grid-cols-2 lg:items-start">
                     <!-- Zeny -->
                     <section class="nw-card">
-                        <header class="nw-card-header flex items-center justify-between gap-3 px-4 py-3">
+                        <header class="flex items-center justify-between gap-3 border-b border-nw-line px-4 py-3">
                             <div class="min-w-0">
-                                <h2 class="nw-card-title text-base font-bold">Zeny</h2>
-                                <p class="nw-card-sub text-xs">Total across all characters</p>
+                                <h2 class="nw-heading text-base font-extrabold">Zeny</h2>
+                                <p class="nw-muted text-xs">Total across all characters</p>
                             </div>
 
-                            <span class="nw-status shrink-0 tabular-nums">
+                            <span class="nw-progress nw-progress-partial shrink-0 tabular-nums">
                                 {{ formatZeny(zenyTotal) }} z
                             </span>
                         </header>
@@ -167,7 +159,7 @@
                                         </p>
                                     </div>
 
-                                    <span class="nw-progress nw-progress-partial shrink-0 tabular-nums">
+                                    <span class="nw-progress shrink-0 tabular-nums">
                                         {{ formatZeny(account.total) }} z
                                     </span>
                                 </div>
@@ -204,9 +196,9 @@
 
                     <!-- Accounts -->
                     <section class="nw-card">
-                        <header class="nw-card-header flex items-center justify-between gap-3 px-4 py-3">
-                            <h2 class="nw-card-title text-base font-bold">Accounts</h2>
-                            <span class="nw-status">{{ dashboard.accounts.length }}</span>
+                        <header class="flex items-center justify-between gap-3 border-b border-nw-line px-4 py-3">
+                            <h2 class="nw-heading text-base font-extrabold">Accounts</h2>
+                            <span class="nw-count tabular-nums">{{ dashboard.accounts.length }}</span>
                         </header>
 
                         <p v-if="dashboard.accounts.length === 0" class="nw-muted px-4 py-8 text-center text-sm">
@@ -233,8 +225,8 @@
                                     </div>
                                 </div>
 
-                                <span class="nw-status shrink-0"
-                                    :class="account.status === 'active' ? 'nw-status-active' : ''">
+                                <span class="nw-progress shrink-0 capitalize"
+                                    :class="account.status === 'active' ? 'nw-progress-done' : ''">
                                     {{ account.status }}
                                 </span>
                             </RouterLink>
@@ -253,7 +245,11 @@ import useLoading from '@/composables/useLoading'
 
 const { startLoading, stopLoading } = useLoading()
 
+// NOTE: change to wherever your Activity Tracker page lives
+const TRACKER_ROUTE = '/activity-tracker'
+
 const loading = ref(true)
+const loadError = ref(false)
 
 const dashboard = ref({
     stats: {
@@ -277,13 +273,22 @@ const dashboard = ref({
 const groupBy = ref('activity')
 const pendingOnly = ref(false)
 
-// Manual expand/collapse overrides, keyed by group id
-const collapsedMap = ref({})
-
 const groupOptions = [
-    { value: 'activity', label: 'Activity' },
-    { value: 'account', label: 'Account' }
+    { value: 'activity', label: 'By activity' },
+    { value: 'character', label: 'By character' }
 ]
+
+const chipClass = {
+    done: 'border-[#a8dcc1] bg-[#eaf8f0] text-[#217a4b]',
+    partial: 'border-[#f2d28a] bg-[#fff0cf] text-[#a35f00]',
+    pending: 'border-nw-line bg-white text-nw-text'
+}
+
+const stateLabel = {
+    done: 'done',
+    partial: 'in progress',
+    pending: 'pending'
+}
 
 // Avatar letter. Skips a leading tag like "[DPS]" so "[DPS]Raizaboi" gives "R", not "["
 const initial = (name) => {
@@ -304,74 +309,65 @@ const formatZeny = (amount) => {
 
 const percent = (done, total) => (total > 0 ? Math.round((done / total) * 100) : 0)
 
+const progressClass = (done, total) => {
+    if (total > 0 && done >= total) {
+        return 'nw-progress-done'
+    }
+
+    return done > 0 ? 'nw-progress-partial' : ''
+}
+
 // ---- Grouping ----
-// Groups the flat character/activity rows by activity or by account.
-// Activity mode: "Character · Account" under each activity.
-// Account mode: "Activity · Character" under each account, ordered by character.
-const buildGroups = (items, section) => {
+// By activity:  one row per activity, one chip per character.
+// By character: one row per character, one chip per activity.
+const multiAccount = computed(() => dashboard.value.accounts.length > 1)
+
+const buildGroups = (items) => {
     const byActivity = groupBy.value === 'activity'
     const map = new Map()
 
     for (const item of items) {
-        const key = byActivity
-            ? String(item.activity_id)
-            : String(item.account_id ?? item.account_name)
+        const key = byActivity ? item.activity_id : item.character_id
 
         if (!map.has(key)) {
             map.set(key, {
-                id: `${section}:${groupBy.value}:${key}`,
-                label: byActivity ? item.activity_name : item.account_name,
-                rows: []
+                id: `${groupBy.value}:${key}`,
+                label: byActivity ? item.activity_name : item.character_name,
+                // Account name only helps when there's more than one account
+                sub: !byActivity && multiAccount.value ? item.account_name : '',
+                chips: []
             })
         }
 
-        map.get(key).rows.push({
+        map.get(key).chips.push({
             id: `${item.character_id}-${item.activity_id}`,
-            initial: initial(item.character_name),
-            primary: byActivity ? item.character_name : item.activity_name,
-            secondary: byActivity ? item.account_name : item.character_name,
-            current_count: item.current_count,
-            target_count: item.target_count,
-            completed: item.completed
+            label: byActivity ? item.character_name : item.activity_name,
+            title: `${item.character_name} · ${item.activity_name}`,
+            state: item.completed ? 'done' : item.current_count > 0 ? 'partial' : 'pending',
+            current: item.current_count,
+            target: item.target_count
         })
     }
 
-    // Activity mode orders by character; account mode keeps each character's activities together
-    const rowOrder = (a, b) => byActivity
-        ? a.primary.localeCompare(b.primary)
-        : a.secondary.localeCompare(b.secondary) || a.primary.localeCompare(b.primary)
-
     return [...map.values()]
-        .map((group) => {
-            const done = group.rows.filter((row) => row.completed).length
-
-            return {
-                ...group,
-                done,
-                total: group.rows.length,
-                // pending rows first, then by name
-                rows: group.rows
-                    .filter((row) => !pendingOnly.value || !row.completed)
-                    .sort((a, b) => Number(a.completed) - Number(b.completed) || rowOrder(a, b))
-            }
-        })
-        .filter((group) => group.rows.length > 0)
-        // groups with work left first, then alphabetical
+        .map((group) => ({
+            ...group,
+            // counted before the pending filter so the row still knows if it's finished
+            done: group.chips.filter((chip) => chip.state === 'done').length,
+            total: group.chips.length,
+            chips: group.chips
+                .filter((chip) => !pendingOnly.value || chip.state !== 'done')
+                .sort((a, b) =>
+                    Number(a.state === 'done') - Number(b.state === 'done') ||
+                    a.label.localeCompare(b.label)
+                )
+        }))
+        .filter((group) => group.chips.length > 0)
+        // rows with work left first, then alphabetical
         .sort((a, b) =>
             Number(a.done === a.total) - Number(b.done === b.total) ||
             a.label.localeCompare(b.label)
         )
-}
-
-// Finished groups start collapsed, groups with work left start open
-const isCollapsed = (group) => {
-    return group.id in collapsedMap.value
-        ? collapsedMap.value[group.id]
-        : group.done === group.total
-}
-
-const toggleGroup = (group) => {
-    collapsedMap.value[group.id] = !isCollapsed(group)
 }
 
 // ---- Zeny ----
@@ -397,24 +393,24 @@ const zenyCharacterCount = computed(() => {
 })
 
 // ---- Derived view data ----
+// Four tiles: the accounts count already lives in the Accounts card,
+// so it's folded into the characters tile instead of getting its own.
 const statTiles = computed(() => {
     const s = dashboard.value.stats
     const dailyTotal = s.daily_completed + s.daily_remaining
     const weeklyTotal = s.weekly_completed + s.weekly_remaining
-    const count = zenyCharacterCount.value
+    const zenyCount = zenyCharacterCount.value
 
     return [
-        { label: 'Active Accounts', display: String(s.active_accounts) },
-        { label: 'Active Characters', display: String(s.active_characters) },
         {
-            label: 'Daily Remaining',
+            label: 'Daily remaining',
             display: String(s.daily_remaining),
             done: s.daily_completed,
             total: dailyTotal,
             good: dailyTotal > 0 && s.daily_remaining === 0
         },
         {
-            label: 'Weekly Remaining',
+            label: 'Weekly remaining',
             display: String(s.weekly_remaining),
             done: s.weekly_completed,
             total: weeklyTotal,
@@ -423,8 +419,12 @@ const statTiles = computed(() => {
         {
             label: 'Total Zeny',
             display: `${formatZeny(zenyTotal.value)} z`,
-            sub: `across ${count} ${count === 1 ? 'character' : 'characters'}`,
-            wide: true
+            sub: `across ${zenyCount} ${zenyCount === 1 ? 'character' : 'characters'}`
+        },
+        {
+            label: 'Active characters',
+            display: String(s.active_characters),
+            sub: `across ${s.active_accounts} ${s.active_accounts === 1 ? 'account' : 'accounts'}`
         }
     ]
 })
@@ -435,23 +435,23 @@ const sections = computed(() => {
     return [
         {
             key: 'daily',
-            title: 'Daily Activities',
+            title: 'Daily activities',
             reset: 'Resets every day at 5:00 AM.',
             emptyText: 'No daily activities.',
             completed: s.daily_completed,
             total: s.daily_completed + s.daily_remaining,
             hasItems: dashboard.value.daily_activities.length > 0,
-            groups: buildGroups(dashboard.value.daily_activities, 'daily')
+            groups: buildGroups(dashboard.value.daily_activities)
         },
         {
             key: 'weekly',
-            title: 'Weekly Activities',
+            title: 'Weekly activities',
             reset: 'Resets every Monday at 5:00 AM.',
             emptyText: 'No weekly activities.',
             completed: s.weekly_completed,
             total: s.weekly_completed + s.weekly_remaining,
             hasItems: dashboard.value.weekly_activities.length > 0,
-            groups: buildGroups(dashboard.value.weekly_activities, 'weekly')
+            groups: buildGroups(dashboard.value.weekly_activities)
         }
     ]
 })
@@ -459,15 +459,14 @@ const sections = computed(() => {
 const fetchDashboard = async () => {
     try {
         loading.value = true
+        loadError.value = false
         startLoading()
 
         const response = await dashboardApi.getDashboard()
 
         dashboard.value = response.data
-
-        console.log(dashboard.value)
-
     } catch (error) {
+        loadError.value = true
         console.error('Failed to fetch dashboard:', error)
     } finally {
         loading.value = false

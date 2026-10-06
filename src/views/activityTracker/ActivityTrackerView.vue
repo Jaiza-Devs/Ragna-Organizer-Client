@@ -1,6 +1,7 @@
 <template>
     <div class="nw-page p-3 sm:p-6 lg:p-8">
         <div class="mx-auto max-w-7xl">
+
             <!-- Page header -->
             <div class="min-w-0">
                 <h1 class="nw-heading text-xl font-extrabold sm:text-2xl">
@@ -189,6 +190,7 @@
                     </section>
                 </template>
             </div>
+
         </div>
     </div>
 </template>
