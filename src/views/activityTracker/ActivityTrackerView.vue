@@ -57,6 +57,34 @@
                             </button>
                         </div>
 
+                        <!-- Sort by status: pending or complete first (both views) -->
+                        <div class="inline-flex items-center rounded-full border border-nw-line-strong bg-white p-0.5"
+                            role="group" aria-label="Sort by status">
+                            <span class="nw-muted pr-1 pl-3 text-xs font-bold">Sort</span>
+                            <button v-for="option in sortOptions.activity" :key="option.key" type="button"
+                                :aria-pressed="sorts.activity === option.key"
+                                class="rounded-full px-3 py-1 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
+                                :class="sorts.activity === option.key
+                                    ? 'bg-nw-navy text-white'
+                                    : 'text-nw-text hover:bg-nw-sky-light'" @click="setSort('activity', option.key)">
+                                {{ option.label }}
+                            </button>
+                        </div>
+
+                        <!-- Sort accounts by creation (by character only) -->
+                        <div v-if="view === 'character'" class="inline-flex items-center rounded-full border border-nw-line-strong bg-white p-0.5"
+                            role="group" aria-label="Sort accounts by creation">
+                            <span class="nw-muted pr-1 pl-3 text-xs font-bold">Created</span>
+                            <button v-for="option in sortOptions.character" :key="option.key" type="button"
+                                :aria-pressed="sorts.character === option.key"
+                                class="rounded-full px-3 py-1 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
+                                :class="sorts.character === option.key
+                                    ? 'bg-nw-navy text-white'
+                                    : 'text-nw-text hover:bg-nw-sky-light'" @click="setSort('character', option.key)">
+                                {{ option.label }}
+                            </button>
+                        </div>
+
                         <button type="button" class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
                             :class="hideDone ? 'bg-nw-sky-light' : ''" :aria-pressed="hideDone"
                             @click="hideDone = !hideDone">
@@ -179,28 +207,34 @@
                                             class="shrink-0" :data-done="row.character.completed"
                                             :aria-pressed="row.character.completed"
                                             :aria-label="`${row.character.completed ? 'Unmark' : 'Mark'} ${row.character.character_name} done for ${row.activity.activity_name}`"
-                                            :disabled="updatingCharacter === row.character.character_id" @click.stop="row.character.completed
+                                            :disabled="isUpdating(row.activity, row.character)" @click.stop="row.character.completed
                                                 ? removeCompletion(row.activity, row.character)
                                                 : addCompletion(row.activity, row.character)">
-                                            ✓
+                                            <span v-if="isUpdating(row.activity, row.character)" class="block size-5 animate-spin rounded-full border-[3px] border-nw-gold-deep border-t-transparent" role="status" aria-label="Updating"></span>
+                                            <template v-else>✓</template>
                                         </button>
 
                                         <!-- Several runs needed: stepper -->
                                         <div v-else
                                             class="flex shrink-0 items-center gap-1 rounded-full border border-nw-line-strong bg-white p-1">
                                             <button type="button" :class="stepBtn" aria-label="Remove one completion"
-                                                :disabled="updatingCharacter === row.character.character_id || !row.character.current_count"
+                                                :disabled="isUpdating(row.activity, row.character) || !row.character.current_count"
                                                 @click.stop="removeCompletion(row.activity, row.character)">
                                                 −
                                             </button>
 
                                             <span
                                                 class="nw-heading min-w-10 text-center text-base font-extrabold tabular-nums">
-                                                {{ row.character.current_count }}/{{ row.character.target_count }}
+                                                <span v-if="isUpdating(row.activity, row.character)"
+                                                    class="mx-auto block size-5 animate-spin rounded-full border-[3px] border-nw-gold-deep border-t-transparent"
+                                                    role="status" aria-label="Updating"></span>
+                                                <template v-else>
+                                                    {{ row.character.current_count }}/{{ row.character.target_count }}
+                                                </template>
                                             </span>
 
                                             <button type="button" :class="stepBtn" aria-label="Add one completion"
-                                                :disabled="updatingCharacter === row.character.character_id || row.character.completed"
+                                                :disabled="isUpdating(row.activity, row.character) || row.character.completed"
                                                 @click.stop="addCompletion(row.activity, row.character)">
                                                 +
                                             </button>
@@ -242,12 +276,47 @@ const readStoredView = () => {
     }
 }
 
+// Sorts. activity: pending/complete rows inside each card (both views).
+// character: oldest/newest account (by character view).
+const SORT_KEY = 'activity-tracker-sort-v2'
+
+const sortOptions = {
+    activity: [
+        { key: 'pending', label: 'Pending' },
+        { key: 'complete', label: 'Complete' }
+    ],
+    character: [
+        { key: 'asc', label: 'Oldest' },
+        { key: 'desc', label: 'Newest' }
+    ]
+}
+
+const readStoredSorts = () => {
+    const sorts = { activity: 'pending', character: 'asc' }
+
+    try {
+        const stored = JSON.parse(localStorage.getItem(SORT_KEY) ?? '{}')
+
+        Object.keys(sortOptions).forEach((view) => {
+            if (sortOptions[view].some((option) => option.key === stored[view])) {
+                sorts[view] = stored[view]
+            }
+        })
+    } catch {
+        // unreadable storage: fall back to the defaults
+    }
+
+    return sorts
+}
+
 const activities = ref([])
 const loading = ref(true)
-const updatingCharacter = ref(null)
+// Rows (activity + character) waiting on the API; the numbers only change once it answers
+const updatingRows = ref(new Set())
 const expandedCards = ref(new Set())
 const view = ref(readStoredView())
 const filter = ref('all')
+const sorts = ref(readStoredSorts())
 const hideDone = ref(false)
 
 // 40px round tap targets
@@ -280,6 +349,74 @@ const isAllComplete = (activity) => {
 }
 
 const sumOf = (list, key) => list.reduce((sum, item) => sum + item[key], 0)
+
+// Pending/complete order comes from a snapshot of who was done when the sort
+// was last applied, so ticking a box doesn't make rows jump under the
+// cursor. Choosing a sort (even the active one again) re-applies it.
+const doneSnapshot = ref(new Set())
+
+const rowKey = (activity, character) => `${activity.activity_id}:${character.character_id}`
+
+const takeSnapshot = () => {
+    const done = new Set()
+
+    activities.value.forEach((activity) => {
+        activity.characters.forEach((character) => {
+            if (character.completed) {
+                done.add(rowKey(activity, character))
+            }
+        })
+    })
+
+    doneSnapshot.value = done
+}
+
+const saveSorts = () => {
+    try {
+        localStorage.setItem(SORT_KEY, JSON.stringify(sorts.value))
+    } catch {
+        // storage unavailable: the choice just won't be remembered
+    }
+}
+
+const setSort = (group, key) => {
+    sorts.value = { ...sorts.value, [group]: key }
+    saveSorts()
+    takeSnapshot()
+}
+
+// Array.sort is stable, so ties keep the order the server sent
+const byPending = (list, isDone) => {
+    const direction = sorts.value.activity === 'complete' ? -1 : 1
+
+    return [...list].sort((a, b) => (Number(isDone(a)) - Number(isDone(b))) * direction)
+}
+
+// Order the activities inside each character card
+const sortRows = (rows) => {
+    return byPending(rows, (row) => doneSnapshot.value.has(rowKey(row.activity, row.character)))
+}
+
+// Order the characters inside each activity card
+const sortCharacters = (activity) => {
+    return byPending(activity.characters, (character) =>
+        doneSnapshot.value.has(rowKey(activity, character))
+    )
+}
+
+// The tracker data may not carry created_at, so fall back to the id, which
+// grows with every new record
+const createdOf = (createdAt, id) => {
+    const time = Date.parse(createdAt ?? '')
+
+    return Number.isNaN(time) ? Number(id) : time
+}
+
+const sortByCreated = (list, created) => {
+    const direction = sorts.value.character === 'desc' ? -1 : 1
+
+    return [...list].sort((a, b) => (created(a) - created(b)) * direction)
+}
 
 // Sum across every activity / character pair
 const overall = computed(() => {
@@ -335,7 +472,7 @@ const activitySections = computed(() => {
                     avatar: '',
                     done: activity.completed_count,
                     total: activity.total_characters,
-                    rows: activity.characters.map((character) => ({
+                    rows: sortCharacters(activity).map((character) => ({
                         key: character.character_id,
                         activity,
                         character,
@@ -367,6 +504,8 @@ const characterSections = computed(() => {
                                 name: character.character_name,
                                 accountKey: String(character.account_id ?? character.account_name ?? ''),
                                 accountName: character.account_name,
+                                created: createdOf(character.created_at, character.character_id),
+                                accountCreated: createdOf(character.account_created_at, character.account_id),
                                 rows: []
                             })
                         }
@@ -390,21 +529,27 @@ const characterSections = computed(() => {
         const bucketKey = multiAccount.value ? person.accountKey : 'all'
 
         if (!buckets.has(bucketKey)) {
-            buckets.set(bucketKey, { name: person.accountName, people: [] })
+            buckets.set(bucketKey, { name: person.accountName, created: person.accountCreated, people: [] })
         }
 
         buckets.get(bucketKey).people.push(person)
     })
 
-    return Array.from(buckets.entries()).map(([bucketKey, bucket]) => {
-        const cards = bucket.people.map((person) => ({
+    // The sort orders accounts. Characters keep their natural order inside an
+    // account, unless there is only one account, where they are what gets sorted.
+    const ordered = multiAccount.value
+        ? sortByCreated(Array.from(buckets.entries()), ([, bucket]) => bucket.created)
+        : Array.from(buckets.entries())
+
+    return ordered.map(([bucketKey, bucket]) => {
+        const cards = (multiAccount.value ? bucket.people : sortByCreated(bucket.people, (person) => person.created)).map((person) => ({
             key: `c:${person.id}`,
             title: person.name,
             suffix: '',
             avatar: initial(person.name),
             done: person.rows.filter((row) => row.character.completed).length,
             total: person.rows.length,
-            rows: hideDone.value ? person.rows.filter((row) => !row.character.completed) : person.rows
+            rows: sortRows(person.rows).filter((row) => !hideDone.value || !row.character.completed)
         }))
 
         return {
@@ -461,6 +606,7 @@ const setView = (next) => {
     }
 
     view.value = next
+    takeSnapshot()
 
     try {
         localStorage.setItem(VIEW_KEY, next)
@@ -488,6 +634,10 @@ const fetchActivityTracker = async ({ silent = false } = {}) => {
         const response = await activityTrackerApi.getActivityTracker()
 
         activities.value = response.data
+
+        if (!silent) {
+            takeSnapshot()
+        }
     } catch (error) {
         console.error('Failed to fetch activity tracker:', error)
     } finally {
@@ -498,20 +648,29 @@ const fetchActivityTracker = async ({ silent = false } = {}) => {
     }
 }
 
+const isUpdating = (activity, character) => updatingRows.value.has(rowKey(activity, character))
+
+const setUpdating = (activity, character, on) => {
+    const next = new Set(updatingRows.value)
+    const key = rowKey(activity, character)
+
+    if (on) {
+        next.add(key)
+    } else {
+        next.delete(key)
+    }
+
+    updatingRows.value = next
+}
+
+// No optimistic change: show a spinner, call the API, refetch, then let the
+// fresh numbers replace the spinner
 const addCompletion = async (activity, character) => {
-    if (character.completed || updatingCharacter.value === character.character_id) {
+    if (character.completed || isUpdating(activity, character)) {
         return
     }
 
-    updatingCharacter.value = character.character_id
-
-    // Update the numbers right away so the click feels instant
-    character.current_count += 1
-
-    if (character.current_count >= character.target_count) {
-        character.completed = true
-        activity.completed_count += 1
-    }
+    setUpdating(activity, character, true)
 
     try {
         await activityCompletionApi.createActivityCompletion({
@@ -522,29 +681,21 @@ const addCompletion = async (activity, character) => {
     } catch (error) {
         console.error('Failed to add activity completion:', error)
     } finally {
-        // Sync with the server (also rolls back the optimistic change on failure)
         await fetchActivityTracker({ silent: true })
-        updatingCharacter.value = null
+        setUpdating(activity, character, false)
     }
 }
 
 const removeCompletion = async (activity, character) => {
-    if (!character.completion_ids.length || updatingCharacter.value === character.character_id) {
+    if (!character.completion_ids.length || isUpdating(activity, character)) {
         return
     }
 
-    updatingCharacter.value = character.character_id
+    setUpdating(activity, character, true)
 
     const completionId = character.completion_ids[
         character.completion_ids.length - 1
     ]
-
-    character.current_count -= 1
-
-    if (character.completed && character.current_count < character.target_count) {
-        character.completed = false
-        activity.completed_count -= 1
-    }
 
     try {
         await activityCompletionApi.deleteActivityCompletion(
@@ -554,7 +705,7 @@ const removeCompletion = async (activity, character) => {
         console.error('Failed to remove activity completion:', error)
     } finally {
         await fetchActivityTracker({ silent: true })
-        updatingCharacter.value = null
+        setUpdating(activity, character, false)
     }
 }
 
