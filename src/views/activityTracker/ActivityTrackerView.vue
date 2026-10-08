@@ -13,89 +13,89 @@
                 </p>
             </div>
 
-            <!-- Toolbar: overall progress + filters (sticky on large screens only) -->
-            <section v-if="!loading && activities.length > 0" class="nw-card mt-4 px-4 py-3 lg:sticky lg:top-3 lg:z-10">
-                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
-                    <div class="min-w-0 lg:flex-1">
-                        <div class="flex items-baseline justify-between gap-3">
-                            <p class="nw-heading text-sm font-extrabold">Overall progress</p>
-                            <p class="nw-value text-xs font-bold tabular-nums">
-                                {{ overall.done }} / {{ overall.total }} · {{ overall.percent }}%
-                            </p>
-                        </div>
+            <!-- Overall progress -->
+            <section v-if="!loading && activities.length > 0" class="nw-card mt-4 px-4 py-3">
+                <div class="flex items-baseline justify-between gap-3">
+                    <p class="nw-heading text-sm font-extrabold">Overall progress</p>
+                    <p class="nw-value text-xs font-bold tabular-nums">
+                        {{ overall.done }} / {{ overall.total }} · {{ overall.percent }}%
+                    </p>
+                </div>
 
-                        <div class="mt-1.5 h-2.5 overflow-hidden rounded-full bg-nw-sky-light">
-                            <div class="h-full rounded-full transition-[width] duration-500"
-                                :class="overall.percent === 100 ? 'bg-nw-green' : 'bg-nw-grad-gold'"
-                                :style="{ width: overall.percent + '%' }"></div>
-                        </div>
-                    </div>
+                <div class="mt-1.5 h-2.5 overflow-hidden rounded-full bg-nw-sky-light">
+                    <div class="h-full rounded-full transition-[width] duration-500"
+                        :class="overall.percent === 100 ? 'bg-nw-green' : 'bg-nw-grad-gold'"
+                        :style="{ width: overall.percent + '%' }"></div>
+                </div>
+            </section>
 
-                    <div class="flex flex-wrap items-center gap-2">
-                        <!-- View: group by activity or by character -->
-                        <div class="inline-flex rounded-full border border-nw-line-strong bg-white p-0.5" role="group"
-                            aria-label="Group by">
-                            <button v-for="option in viewOptions" :key="option.key" type="button"
-                                :aria-pressed="view === option.key"
-                                class="rounded-full px-3 py-1 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
-                                :class="view === option.key
-                                    ? 'bg-nw-grad-sky text-white'
-                                    : 'text-nw-text hover:bg-nw-sky-light'" @click="setView(option.key)">
-                                {{ option.label }}
-                            </button>
-                        </div>
-
-                        <!-- Reset type filter -->
-                        <div class="inline-flex rounded-full border border-nw-line-strong bg-white p-0.5" role="group"
-                            aria-label="Filter by reset type">
-                            <button v-for="tab in tabs" :key="tab.key" type="button" :aria-pressed="filter === tab.key"
-                                class="rounded-full px-3 py-1 text-[0.8125rem] font-bold capitalize transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
-                                :class="filter === tab.key
-                                    ? 'bg-nw-grad-gold text-white'
-                                    : 'text-nw-text hover:bg-nw-sky-light'" @click="filter = tab.key">
-                                {{ tab.key }}
-                            </button>
-                        </div>
-
-                        <!-- Sort by status: pending or complete first (both views) -->
-                        <div class="inline-flex items-center rounded-full border border-nw-line-strong bg-white p-0.5"
-                            role="group" aria-label="Sort by status">
-                            <span class="nw-muted pr-1 pl-3 text-xs font-bold">Sort</span>
-                            <button v-for="option in sortOptions.activity" :key="option.key" type="button"
-                                :aria-pressed="sorts.activity === option.key"
-                                class="rounded-full px-3 py-1 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
-                                :class="sorts.activity === option.key
-                                    ? 'bg-nw-navy text-white'
-                                    : 'text-nw-text hover:bg-nw-sky-light'" @click="setSort('activity', option.key)">
-                                {{ option.label }}
-                            </button>
-                        </div>
-
-                        <!-- Sort accounts by creation (by character only) -->
-                        <div v-if="view === 'character'" class="inline-flex items-center rounded-full border border-nw-line-strong bg-white p-0.5"
-                            role="group" aria-label="Sort accounts by creation">
-                            <span class="nw-muted pr-1 pl-3 text-xs font-bold">Created</span>
-                            <button v-for="option in sortOptions.character" :key="option.key" type="button"
-                                :aria-pressed="sorts.character === option.key"
-                                class="rounded-full px-3 py-1 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
-                                :class="sorts.character === option.key
-                                    ? 'bg-nw-navy text-white'
-                                    : 'text-nw-text hover:bg-nw-sky-light'" @click="setSort('character', option.key)">
-                                {{ option.label }}
-                            </button>
-                        </div>
-
-                        <button type="button" class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
-                            :class="hideDone ? 'bg-nw-sky-light' : ''" :aria-pressed="hideDone"
-                            @click="hideDone = !hideDone">
-                            {{ hideDone ? '✓ ' : '' }}Hide done
-                        </button>
-
-                        <button type="button" class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
-                            @click="allExpanded ? collapseAll() : expandAll()">
-                            {{ allExpanded ? 'Collapse all' : 'Expand all' }}
+            <!-- Filters: view, reset type, sort and display options (sticky on large screens only) -->
+            <section v-if="!loading && activities.length > 0" aria-label="Filters"
+                class="nw-card mt-3 px-4 py-3 lg:sticky lg:top-3 lg:z-10">
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- View: group by activity or by character -->
+                    <div class="inline-flex rounded-full border border-nw-line-strong bg-white p-0.5" role="group"
+                        aria-label="Group by">
+                        <button v-for="option in viewOptions" :key="option.key" type="button"
+                            :aria-pressed="view === option.key"
+                            class="rounded-full px-3 py-1 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
+                            :class="view === option.key
+                                ? 'bg-nw-grad-sky text-white'
+                                : 'text-nw-text hover:bg-nw-sky-light'" @click="setView(option.key)">
+                            {{ option.label }}
                         </button>
                     </div>
+
+                    <!-- Reset type filter -->
+                    <div class="inline-flex rounded-full border border-nw-line-strong bg-white p-0.5" role="group"
+                        aria-label="Filter by reset type">
+                        <button v-for="tab in tabs" :key="tab.key" type="button" :aria-pressed="filter === tab.key"
+                            class="rounded-full px-3 py-1 text-[0.8125rem] font-bold capitalize transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
+                            :class="filter === tab.key
+                                ? 'bg-nw-grad-gold text-white'
+                                : 'text-nw-text hover:bg-nw-sky-light'" @click="filter = tab.key">
+                            {{ tab.key }}
+                        </button>
+                    </div>
+
+                    <!-- Sort by status: pending or complete first (both views) -->
+                    <div class="inline-flex items-center rounded-full border border-nw-line-strong bg-white p-0.5"
+                        role="group" aria-label="Sort by status">
+                        <span class="nw-muted pr-1 pl-3 text-xs font-bold">Sort</span>
+                        <button v-for="option in sortOptions.activity" :key="option.key" type="button"
+                            :aria-pressed="sorts.activity === option.key"
+                            class="rounded-full px-3 py-1 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
+                            :class="sorts.activity === option.key
+                                ? 'bg-nw-navy text-white'
+                                : 'text-nw-text hover:bg-nw-sky-light'" @click="setSort('activity', option.key)">
+                            {{ option.label }}
+                        </button>
+                    </div>
+
+                    <!-- Sort accounts by creation (by character only) -->
+                    <div v-if="view === 'character'" class="inline-flex items-center rounded-full border border-nw-line-strong bg-white p-0.5"
+                        role="group" aria-label="Sort accounts by creation">
+                        <span class="nw-muted pr-1 pl-3 text-xs font-bold">Created</span>
+                        <button v-for="option in sortOptions.character" :key="option.key" type="button"
+                            :aria-pressed="sorts.character === option.key"
+                            class="rounded-full px-3 py-1 text-[0.8125rem] font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nw-gold"
+                            :class="sorts.character === option.key
+                                ? 'bg-nw-navy text-white'
+                                : 'text-nw-text hover:bg-nw-sky-light'" @click="setSort('character', option.key)">
+                            {{ option.label }}
+                        </button>
+                    </div>
+
+                    <button type="button" class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
+                        :class="hideDone ? 'bg-nw-sky-light' : ''" :aria-pressed="hideDone"
+                        @click="hideDone = !hideDone">
+                        {{ hideDone ? '✓ ' : '' }}Hide done
+                    </button>
+
+                    <button type="button" class="nw-btn nw-btn-ghost px-3 py-1 text-[0.8125rem]"
+                        @click="allExpanded ? collapseAll() : expandAll()">
+                        {{ allExpanded ? 'Collapse all' : 'Expand all' }}
+                    </button>
                 </div>
             </section>
 
